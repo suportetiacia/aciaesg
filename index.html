@@ -13,6 +13,13 @@
     <!-- Firebase (compat) - apenas se desejar sync em nuvem -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <link rel="shortcut icon" type="imagex/png" href="icons/icon-512.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b1220">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
         :root {
             --bg: #0b1220;
@@ -377,11 +384,12 @@
     <div class="wrap">
         <header>
             <div class="title">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+                <!-- <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
                     <path d="M3 3v18h18" />
                     <path d="M19 5l-7 7-4-4-3 3" />
-                </svg>
+                </svg> -->
+                <img src="logoacianexus_wbg.png" alt="" width="100px" height="50px">
                 <div>
                     <h1>AciaESG • Coleta de Dados</h1>
                     <small id="subCount">0 respostas</small>
@@ -491,7 +499,8 @@
                     <li>Edite o <em>schema</em> JSON das perguntas abaixo. Ao salvar, o formulário será gerado
                         automaticamente.</li>
                     <li>Tipos suportados: <code>text</code>, <code>number</code>, <code>yesno</code>,
-                        <code>select</code>, <code>scale</code>, <code>date</code>.</li>
+                        <code>select</code>, <code>scale</code>, <code>date</code>.
+                    </li>
                     <li>Para pontuação (<em>score</em>):
                         <ul>
                             <li><code>yesno</code>: "Sim"=1, "Não"=0</li>
@@ -652,459 +661,466 @@
             </div>
         </div>
 
-    <!-- Bloco de integração Firebase: preencha firebaseConfig para ativar sync -->
-    <script>
-        (function () {
-            const firebaseConfig = {
-                apiKey: "AIzaSyBtpusAzifbsqD7z9nIZA7wSM7sHnBEoVQ",
-                authDomain: "esgacia-a34af.firebaseapp.com",
-                projectId: "esgacia-a34af",
-                storageBucket: "esgacia-a34af.firebasestorage.app",
-                messagingSenderId: "1046570007825",
-                appId: "1:1046570007825:web:ccd452316de7d3d88a20b0",
-                measurementId: "G-LX6RZ2KEBP"
-            };
-            const hasConfig = !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId);
-            if (!window.firebase || !hasConfig) { window.firebaseApi = null; return; }
-            try {
-                const app = firebase.initializeApp(firebaseConfig);
-                const db = firebase.firestore();
-                db.enablePersistence({ synchronizeTabs: true }).catch(() => { });
-                const TENANT_ID = "default";
-                function coll() { return db.collection('tenants').doc(TENANT_ID).collection('responses'); }
-                async function saveRecord(rec) {
-                    rec._createdAtServer = firebase.firestore.FieldValue.serverTimestamp();
-                    const ref = await coll().add(rec);
-                    console.log('✔ Firestore: salvo', ref.id);
-                    return ref.id;
-                }
-                function subscribe(onChange) {
-                    coll().orderBy('createdAt', 'desc').onSnapshot(
-                        snap => {
-                            const arr = []; snap.forEach(doc => { arr.push({ _id: doc.id, ...doc.data() }); });
-                            if (typeof onChange === 'function') onChange(arr);
-                        },
-                        err => { console.warn('Snapshot Firestore falhou, mantendo modo local:', err && (err.code || err.message) || err); }
-                    );
-                }
-                async function deleteRecord(id) { await coll().doc(id).delete(); }
-                async function deleteAll() { const snap = await coll().get(); const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit(); }
-                window.firebaseApi = { saveRecord, subscribe, deleteRecord, deleteAll };
-            } catch (e) { console.error(e); window.firebaseApi = null; }
-        })();
-    </script>
-
-    <script>
-        (function () {
-            'use strict';
-            const LS_KEY_DATA = 'esg_submissions_v1';
-            const LS_KEY_SCHEMA = 'esg_schema_v1';
-            const USE_LOCAL_DATA = !window.firebaseApi;
-            const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1427391813643407523/-z_NaHaGpMg0EIHwtpyFqkiBtpSV06OaJnxFf2WZEt_LdMK9F2skDNO2p1uzMUYOtoje";
-            async function postDiscord(rec, id) {
-                if (!DISCORD_WEBHOOK) return;
-                const pct = n => (n == null ? '—' : (Math.round(n * 100) + '%'));
-                const color = (function () {
-                    const t = rec && rec.scores ? rec.scores.total : null;
-                    if (t == null) return 0x3b82f6;
-                    const p = Math.round(t * 100);
-                    if (p >= 80) return 0x22c55e;
-                    if (p >= 50) return 0xf59e0b;
-                    return 0xef4444;
-                })();
-                const embed = {
-                    title: "Nova resposta AciaESG",
-                    description: rec.company && rec.company.name ? `**${rec.company.name}**` : "",
-                    color: color,
-                    timestamp: new Date().toISOString(),
-                    fields: [
-                        { name: "Setor", value: (rec.company && rec.company.sector) || "—", inline: true },
-                        { name: "Porte", value: (rec.company && rec.company.size) || "—", inline: true },
-                        { name: "Total", value: pct(rec.scores && rec.scores.total), inline: true },
-                        { name: "E", value: pct(rec.scores && rec.scores.env), inline: true },
-                        { name: "S", value: pct(rec.scores && rec.scores.soc), inline: true },
-                        { name: "G", value: pct(rec.scores && rec.scores.gov), inline: true },
-                        { name: "Cidade/UF", value: (rec.company && rec.company.location) || "—", inline: true },
-                        { name: "Contato", value: (rec.company && rec.company.contact) || "—", inline: true },
-                        { name: "E-mail", value: (rec.company && rec.company.email) || "—", inline: true }
-                    ],
-                    footer: { text: "AciaESG • Coleta de Dados" }
+        <!-- Bloco de integração Firebase: preencha firebaseConfig para ativar sync -->
+        <script>
+            (function () {
+                const firebaseConfig = {
+                    apiKey: "AIzaSyBtpusAzifbsqD7z9nIZA7wSM7sHnBEoVQ",
+                    authDomain: "esgacia-a34af.firebaseapp.com",
+                    projectId: "esgacia-a34af",
+                    storageBucket: "esgacia-a34af.firebasestorage.app",
+                    messagingSenderId: "1046570007825",
+                    appId: "1:1046570007825:web:ccd452316de7d3d88a20b0",
+                    measurementId: "G-LX6RZ2KEBP"
                 };
-                const payload = { content: "", embeds: [embed] };
+                const hasConfig = !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId);
+                if (!window.firebase || !hasConfig) { window.firebaseApi = null; return; }
                 try {
-                    const res = await fetch(DISCORD_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!res.ok) console.warn('Discord webhook falhou', res.status);
-                } catch (err) { console.warn('Discord webhook erro', err); }
-            }
+                    const app = firebase.initializeApp(firebaseConfig);
+                    const db = firebase.firestore();
+                    db.enablePersistence({ synchronizeTabs: true }).catch(() => { });
+                    const TENANT_ID = "default";
+                    function coll() { return db.collection('tenants').doc(TENANT_ID).collection('responses'); }
+                    async function saveRecord(rec) {
+                        rec._createdAtServer = firebase.firestore.FieldValue.serverTimestamp();
+                        const ref = await coll().add(rec);
+                        console.log('✔ Firestore: salvo', ref.id);
+                        return ref.id;
+                    }
+                    function subscribe(onChange) {
+                        coll().orderBy('createdAt', 'desc').onSnapshot(
+                            snap => {
+                                const arr = []; snap.forEach(doc => { arr.push({ _id: doc.id, ...doc.data() }); });
+                                if (typeof onChange === 'function') onChange(arr);
+                            },
+                            err => { console.warn('Snapshot Firestore falhou, mantendo modo local:', err && (err.code || err.message) || err); }
+                        );
+                    }
+                    async function deleteRecord(id) { await coll().doc(id).delete(); }
+                    async function deleteAll() { const snap = await coll().get(); const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit(); }
+                    window.firebaseApi = { saveRecord, subscribe, deleteRecord, deleteAll };
+                } catch (e) { console.error(e); window.firebaseApi = null; }
+            })();
+        </script>
 
-            function loadData() {
-                if (!USE_LOCAL_DATA) return [];
-                try { return JSON.parse(localStorage.getItem(LS_KEY_DATA) || '[]') } catch (e) { return [] }
-            }
-            function saveData(arr) {
-                if (!USE_LOCAL_DATA) return;
-                localStorage.setItem(LS_KEY_DATA, JSON.stringify(arr))
-            }
-
-            const defaultSchema = { sections: [{ key: 'environment', title: 'Ambiental', items: [{ id: 'energia_renovavel', label: '% de energia proveniente de fontes renováveis', type: 'number', min: 0, max: 100, step: 1, placeholder: '0–100', required: false }, { id: 'monitoramento_energia', label: 'Possui monitoramento de consumo de energia?', type: 'yesno', required: true, score: true }, { id: 'agua_consumo', label: 'Consumo mensal de água (m³)', type: 'number', min: 0, step: 0.01 }, { id: 'gestao_residuos', label: 'Gestão de resíduos (coleta seletiva / destinação adequada)', type: 'select', options: ['Não', 'Parcial', 'Sim'], required: true, score: true, scores: { 'Não': 0, 'Parcial': 0.5, 'Sim': 1 } }, { id: 'inventario_ghg', label: 'Inventário de emissões (GEE) realizado', type: 'select', options: ['Não', 'Escopo 1', 'Escopos 1+2', 'Escopos 1+2+3'], score: true, scores: { 'Não': 0, 'Escopo 1': 0.33, 'Escopos 1+2': 0.66, 'Escopos 1+2+3': 1 } }, { id: 'politica_ambiental', label: 'Política ambiental formalizada', type: 'yesno', score: true }] }, { key: 'social', title: 'Social', items: [{ id: 'total_empregados', label: 'Total de colaboradores', type: 'number', min: 0, step: 1 }, { id: 'mulheres_lideranca', label: '% mulheres em liderança', type: 'number', min: 0, max: 100, step: 1 }, { id: 'politica_dei', label: 'Política de Diversidade, Equidade e Inclusão (DEI)', type: 'yesno', score: true }, { id: 'treinamento_horas', label: 'Horas de treinamento/colaborador (últimos 12 meses)', type: 'number', min: 0, step: 0.1 }, { id: 'lgpd_dpo', label: 'Encarregado de dados (LGPD/DPO) nomeado', type: 'yesno', score: true }, { id: 'acidentes', label: 'Acidentes de trabalho (últimos 12 meses)', type: 'number', min: 0, step: 1 }] }, { key: 'governance', title: 'Governança', items: [{ id: 'codigo_etica', label: 'Código de ética publicado', type: 'yesno', score: true }, { id: 'conselho_indep', label: '% de membros independentes no conselho/diretoria', type: 'number', min: 0, max: 100, step: 1 }, { id: 'anticorrupcao', label: 'Treinamento anticorrupção para colaboradores', type: 'yesno', score: true }, { id: 'gestao_riscos', label: 'Processo formal de gestão de riscos', type: 'yesno', score: true }, { id: 'canal_denuncia', label: 'Canal de denúncias ativo', type: 'yesno', score: true }, { id: 'auditoria', label: 'Demonstrações financeiras auditadas', type: 'yesno', score: true }] }] };
-
-            function loadSchema() { try { const s = JSON.parse(localStorage.getItem(LS_KEY_SCHEMA) || 'null'); return s && s.sections ? s : defaultSchema } catch (e) { return defaultSchema } }
-            function saveSchema(schema) { localStorage.setItem(LS_KEY_SCHEMA, JSON.stringify(schema)) }
-
-            const $ = s => document.querySelector(s); const $$ = s => Array.from(document.querySelectorAll(s));
-            function toNumber(v) { if (v == null || v === '') return null; return Number(String(v).replace(',', '.')) }
-            function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') }
-            function todayISO() { return new Date().toISOString() }
-            function dateBR(iso) { try { return new Date(iso).toLocaleString('pt-BR') } catch (e) { return iso } }
-
-            let schema = loadSchema();
-            let DATA = loadData();
-            let CHARTS = { trend: null, sector: null, size: null };
-
-            function renderForm() {
-                const cont = $('#dynamicSections'); cont.innerHTML = ''; let qCount = 0;
-                schema.sections.forEach(sec => {
-                    const box = document.createElement('div'); box.className = 'card'; box.style.marginBottom = '10px';
-                    const h = document.createElement('div'); h.className = 'section-title';
-                    const h3 = document.createElement('h3'); h3.textContent = sec.title; const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = (sec.items.length || 0) + ' itens'; h.appendChild(h3); h.appendChild(badge); box.appendChild(h);
-                    const grid = document.createElement('div'); grid.className = 'grid';
-                    sec.items.forEach(item => {
-                        qCount++; const col = document.createElement('div'); col.className = 'col-6';
-                        const id = `q_${sec.key}_${item.id || slug(item.label)}`; const req = item.required ? ' *' : '';
-                        const label = document.createElement('label'); label.setAttribute('for', id); label.textContent = (item.label || '') + req; let input;
-                        if (item.type === 'text') { input = document.createElement('input'); input.type = 'text'; if (item.placeholder) input.placeholder = item.placeholder }
-                        else if (item.type === 'number') { input = document.createElement('input'); input.type = 'number'; if (item.min != null) input.min = item.min; if (item.max != null) input.max = item.max; input.step = item.step != null ? item.step : '0.01'; if (item.placeholder) input.placeholder = item.placeholder }
-                        else if (item.type === 'date') { input = document.createElement('input'); input.type = 'date' }
-                        else if (item.type === 'yesno') { input = document.createElement('select'); const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Selecione…'; input.appendChild(o0);['Sim', 'Não'].forEach(v => { const op = document.createElement('option'); op.value = v; op.textContent = v; input.appendChild(op) }) }
-                        else if (item.type === 'select') { input = document.createElement('select'); const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Selecione…'; input.appendChild(o0); (item.options || []).forEach(v => { const op = document.createElement('option'); op.value = v; op.textContent = v; input.appendChild(op) }) }
-                        else if (item.type === 'scale') {
-                            input = document.createElement('input'); input.type = 'range'; input.min = item.min != null ? item.min : 1; input.max = item.max != null ? item.max : 5; input.step = 1; input.value = item.default != null ? item.default : input.min;
-                            const out = document.createElement('div'); out.className = 'hint'; out.id = id + '_out'; out.textContent = 'Valor: ' + input.value; input.addEventListener('input', () => out.textContent = 'Valor: ' + input.value);
-                            col.appendChild(label); col.appendChild(input); col.appendChild(out); input.id = id; input.name = id; if (item.required) input.required = true; grid.appendChild(col); return
-                        } else { input = document.createElement('input'); input.type = 'text' }
-                        input.id = id; input.name = id; if (item.required) input.required = true; col.appendChild(label); col.appendChild(input); grid.appendChild(col)
-                    });
-                    box.appendChild(grid); cont.appendChild(box)
-                });
-                $('#qCount').textContent = qCount + ' itens';
-                attachMasks()
-            }
-
-            function onlyDigits(s) { return String(s || '').replace(/\D+/g, '') }
-            function formatCNPJ(v) { const s = onlyDigits(v).slice(0, 14); if (!s) return ''; if (s.length <= 2) return s; if (s.length <= 5) return s.slice(0, 2) + '.' + s.slice(2); if (s.length <= 8) return s.slice(0, 2) + '.' + s.slice(2, 5) + '.' + s.slice(5); if (s.length <= 12) return s.slice(0, 2) + '.' + s.slice(2, 5) + '.' + s.slice(5, 8) + '/' + s.slice(8); return s.slice(0, 2) + '.' + s.slice(2, 5) + '.' + s.slice(5, 8) + '/' + s.slice(8, 12) + '-' + s.slice(12) }
-            function formatPhone(v) { const s = onlyDigits(v).slice(0, 11); if (!s) return ''; if (s.length <= 2) return '(' + s; if (s.length <= 6) return '(' + s.slice(0, 2) + ') ' + s.slice(2); if (s.length <= 10) return '(' + s.slice(0, 2) + ') ' + s.slice(2, 6) + '-' + s.slice(6); return '(' + s.slice(0, 2) + ') ' + s.slice(2, 7) + '-' + s.slice(7) }
-            function normalizeCityUF(v) { if (!v) return ''; const parts = String(v).split('/'); let city = (parts[0] || '').trim(); let uf = (parts[1] || '').trim(); if (city) { city = city.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()) } if (uf) { uf = uf.slice(0, 2).toUpperCase() } return uf ? (city ? city + '/' + uf : uf) : city }
-            function clampPercent(el) { let s = String(el.value || '').replace(',', '.'); let n = parseFloat(s); if (isNaN(n)) { el.value = ''; return } if (n < 0) n = 0; if (n > 100) n = 100; el.value = String(n) }
-            function attachQuestionMasks() { try { schema.sections.forEach(sec => { sec.items.forEach(item => { const id = 'q_' + sec.key + '_' + (item.id || slug(item.label)); const el = document.getElementById(id); if (!el) return; if (item.type === 'number') { el.inputMode = 'decimal'; if (item.max === 100 || /%/.test(item.label || '')) { if (!el._pct) { el.addEventListener('input', () => clampPercent(el)); el.addEventListener('blur', () => clampPercent(el)); el._pct = true } } if (item.min === 0 && !el._nonneg) { el.addEventListener('blur', () => { const v = parseFloat(String(el.value || '').replace(',', '.')); if (!isNaN(v) && v < 0) el.value = '0' }); el._nonneg = true } } }) }) } catch (e) { } }
-            function attachMasks() {
-                const cnpj = $('#c-cnpj'); if (cnpj && !cnpj._mk) { cnpj.inputMode = 'numeric'; cnpj.placeholder = cnpj.placeholder || '00.000.000/0000-00'; cnpj.addEventListener('input', () => cnpj.value = formatCNPJ(cnpj.value)); cnpj._mk = true }
-                const tel = $('#c-tel'); if (tel && !tel._mk) { tel.inputMode = 'numeric'; tel.placeholder = tel.placeholder || '(00) 00000-0000'; tel.addEventListener('input', () => tel.value = formatPhone(tel.value)); tel._mk = true }
-                const loc = $('#c-local'); if (loc && !loc._mk) { loc.addEventListener('blur', () => loc.value = normalizeCityUF(loc.value)); loc._mk = true }
-                const email = $('#c-email'); if (email && !email._mk) { email.addEventListener('blur', () => email.value = String(email.value || '').trim().toLowerCase()); email._mk = true }
-                attachQuestionMasks()
-            }
-
-            function collectAnswers() {
-                const base = { company: { name: $('#c-nome').value.trim(), cnpj: $('#c-cnpj').value.trim(), sector: $('#c-setor').value, size: $('#c-porte').value, employees: toNumber($('#c-emp').value), location: $('#c-local').value.trim(), contact: $('#c-contato').value.trim(), email: $('#c-email').value.trim(), phone: $('#c-tel').value.trim() }, consent: $('#consent').checked, answers: {}, scores: { env: null, soc: null, gov: null, total: null }, createdAt: todayISO() };
-                if (!base.company.name || !base.company.sector || !base.company.size) { alert('Preencha os campos obrigatórios de Dados da empresa.'); return null }
-                if (!base.consent) { alert('É necessário concordar com o uso das informações.'); return null }
-                let envVals = [], socVals = [], govVals = [];
-                for (const sec of schema.sections) { for (const item of sec.items) { const id = `q_${sec.key}_${item.id || slug(item.label)}`; const el = document.getElementById(id); if (!el) continue; let v = el.value; if (item.type === 'number') v = (v === '' ? null : toNumber(v)); if (item.type === 'yesno' && v === '') v = null; if (item.type === 'scale') v = Number(el.value); base.answers[id] = v; if (item.score) { let score = null; if (item.type === 'yesno') { score = (v === 'Sim') ? 1 : (v === 'Não' ? 0 : null) } else if (item.type === 'scale') { const max = item.max != null ? item.max : 5; const min = item.min != null ? item.min : 1; score = (v == null ? null : (v - min) / (max - min)) } else if (item.type === 'select' && item.scores) { score = v != null && v !== '' && (v in item.scores) ? Number(item.scores[v]) : null } if (score != null) { if (sec.key === 'environment') envVals.push(score); if (sec.key === 'social') socVals.push(score); if (sec.key === 'governance') govVals.push(score) } } } }
-                const avg = a => a.length ? (a.reduce((x, y) => x + y, 0) / a.length) : null; base.scores.env = avg(envVals); base.scores.soc = avg(socVals); base.scores.gov = avg(govVals); const parts = [base.scores.env, base.scores.soc, base.scores.gov].filter(x => x != null); base.scores.total = parts.length ? (parts.reduce((a, b) => a + b, 0) / parts.length) : null; return base
-            }
-
-            function renderTable(data) { const tbody = $('#subsTable tbody'); const q = ($('#filter')?.value || '').toLowerCase(); tbody.innerHTML = ''; data.forEach((it, idx) => { const name = it.company?.name || ''; const sector = it.company?.sector || ''; const loc = it.company?.location || ''; const hay = (name + ' ' + sector + ' ' + loc).toLowerCase(); if (q && hay.indexOf(q) === -1) return; const tr = document.createElement('tr'); const tds = [dateBR(it.createdAt), name, sector, (it.company?.size || ''), loc, (it.scores.env != null ? Math.round(it.scores.env * 100) + '%' : '-'), (it.scores.soc != null ? Math.round(it.scores.soc * 100) + '%' : '-'), (it.scores.gov != null ? Math.round(it.scores.gov * 100) + '%' : '-'), (it.scores.total != null ? Math.round(it.scores.total * 100) + '%' : '-')]; tds.forEach(val => { const td = document.createElement('td'); td.textContent = val; tr.appendChild(td) }); const tdAct = document.createElement('td'); const b1 = document.createElement('button'); b1.className = 'secondary'; b1.dataset.act = 'view'; b1.dataset.idx = String(idx); b1.textContent = 'Ver'; const b2 = document.createElement('button'); b2.className = 'ghost'; b2.dataset.act = 'del'; b2.dataset.idx = String(idx); b2.textContent = 'Del'; tdAct.appendChild(b1); tdAct.appendChild(b2); tr.appendChild(tdAct); tbody.appendChild(tr) }) }
-
-            function openModalByIndex(idx) {
-                const rec = getData()[idx];
-                if (!rec) return;
-                const modal = document.getElementById('modal');
-                const title = document.getElementById('modalTitle');
-                const body = document.getElementById('modalBody');
-                title.textContent = rec.company?.name || 'Detalhes da resposta';
-                body.innerHTML = '';
-
-                function row(label, value) { const tr = document.createElement('tr'); const td1 = document.createElement('td'); td1.textContent = label; td1.style.width = '40%'; const td2 = document.createElement('td'); td2.textContent = (value == null || value === '') ? '—' : String(value); tr.append(td1, td2); return tr }
-
-                const c = rec.company;
-                const card1 = document.createElement('div'); card1.className = 'card';
-                const ctitle = document.createElement('div'); ctitle.className = 'section-title'; const h = document.createElement('h3'); h.textContent = 'Empresa'; ctitle.appendChild(h); card1.appendChild(ctitle);
-                const t1 = document.createElement('table'); const tb1 = document.createElement('tbody');
-                tb1.append(row('Data', dateBR(rec.createdAt)));
-                tb1.append(row('Razão social', c.name));
-                tb1.append(row('CNPJ', c.cnpj));
-                tb1.append(row('Setor', c.sector));
-                tb1.append(row('Porte', c.size));
-                tb1.append(row('Cidade/UF', c.location));
-                tb1.append(row('Contato', c.contact));
-                tb1.append(row('E-mail', c.email));
-                tb1.append(row('Telefone', c.phone));
-                t1.appendChild(tb1); card1.appendChild(t1); body.appendChild(card1);
-
-                const card2 = document.createElement('div'); card2.className = 'card';
-                const st = document.createElement('div'); st.className = 'section-title'; const hs = document.createElement('h3'); hs.textContent = 'Scores'; st.appendChild(hs); card2.appendChild(st);
-                const chips = document.createElement('div'); chips.className = 'chips';
-                const pct = n => n == null ? '—' : (Math.round(n * 100) + '%');
-                ['E', 'S', 'G', 'Total'].forEach((k, i) => { const span = document.createElement('span'); span.className = 'chip'; const val = [rec.scores.env, rec.scores.soc, rec.scores.gov, rec.scores.total][i]; span.textContent = `${k}: ${pct(val)}`; chips.appendChild(span) });
-                card2.appendChild(chips); body.appendChild(card2);
-
-                schema.sections.forEach(sec => {
-                    const card = document.createElement('div'); card.className = 'card';
-                    const st = document.createElement('div'); st.className = 'section-title'; const hh = document.createElement('h3'); hh.textContent = sec.title; st.appendChild(hh); card.appendChild(st);
-                    const t = document.createElement('table'); const tb = document.createElement('tbody');
-                    sec.items.forEach(item => { const id = `q_${sec.key}_${item.id || slug(item.label)}`; const v = rec.answers[id]; tb.appendChild(row(item.label, (v == null || v === '') ? '—' : v)) });
-                    t.appendChild(tb); card.appendChild(t); body.appendChild(card);
-                });
-
-                modal.hidden = false;
-            }
-            function closeModal() { const modal = document.getElementById('modal'); if (modal) modal.hidden = true }
-
-            function refreshCounts(data) { const n = data.length; $('#subCount').textContent = n + (n === 1 ? ' resposta' : ' respostas'); $('#kpiCount').textContent = n; updateDashboard(data); renderTable(data) }
-
-            function monthKey(d) { const dt = new Date(d); return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, '0') }
-
-            function updateCharts(data) {
-                const byMonth = {}; data.forEach(r => { const k = monthKey(r.createdAt); byMonth[k] = byMonth[k] || { e: [], s: [], g: [] }; if (r.scores.env != null) byMonth[k].e.push(r.scores.env * 100); if (r.scores.soc != null) byMonth[k].s.push(r.scores.soc * 100); if (r.scores.gov != null) byMonth[k].g.push(r.scores.gov * 100) });
-                const mLabels = Object.keys(byMonth).sort();
-                const avg = v => v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
-                const eData = mLabels.map(m => Math.round(avg(byMonth[m].e))); const sData = mLabels.map(m => Math.round(avg(byMonth[m].s))); const gData = mLabels.map(m => Math.round(avg(byMonth[m].g)));
-                const trendCtx = $('#chartTrend');
-                if (CHARTS.trend) { CHARTS.trend.destroy() }
-                CHARTS.trend = new Chart(trendCtx, { type: 'line', data: { labels: mLabels, datasets: [{ label: 'E', data: eData }, { label: 'S', data: sData }, { label: 'G', data: gData }] }, options: { responsive: true, interaction: { mode: 'index', intersect: false }, scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '%' } } } } });
-
-                const bySector = {}; data.forEach(d => { const k = d.company?.sector || '—'; const v = (d.scores.total != null) ? d.scores.total * 100 : null; if (v != null) { (bySector[k] || (bySector[k] = [])).push(v) } });
-                const sLabels = Object.keys(bySector); const sVals = sLabels.map(k => Math.round(avg(bySector[k])));
-                const sectorCtx = $('#chartSector'); if (CHARTS.sector) { CHARTS.sector.destroy() }
-                CHARTS.sector = new Chart(sectorCtx, { type: 'bar', data: { labels: sLabels, datasets: [{ label: 'Score médio', data: sVals }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '%' } } } } });
-
-                const bySize = {}; data.forEach(d => { const k = d.company?.size || '—'; bySize[k] = (bySize[k] || 0) + 1 });
-                const zLabels = Object.keys(bySize); const zVals = zLabels.map(k => bySize[k]);
-                const sizeCtx = $('#chartSize'); if (CHARTS.size) { CHARTS.size.destroy() }
-                CHARTS.size = new Chart(sizeCtx, { type: 'doughnut', data: { labels: zLabels, datasets: [{ data: zVals }] }, options: { responsive: true } });
-            }
-
-            function updateQuality(data) {
-                const n = data.length; const digits = s => String(s || '').replace(/\D+/g, '');
-                const reMail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                let okMail = 0, okCNPJ = 0, okPhone = 0, okLoc = 0, okEmp = 0, okConsent = 0, complete = 0; const issues = { email: 0, cnpj: 0, phone: 0, loc: 0, emp: 0, consent: 0 };
-                data.forEach(d => {
-                    const mail = reMail.test(d.company.email || ''); if (mail) okMail++; else issues.email++;
-                    const cnpj = digits(d.company.cnpj).length === 14; if (cnpj) okCNPJ++; else issues.cnpj++;
-                    const phoneLen = digits(d.company.phone).length; const phone = phoneLen === 10 || phoneLen === 11; if (phone) okPhone++; else issues.phone++;
-                    const loc = !!(d.company.location && d.company.location.includes('/')); if (loc) okLoc++; else issues.loc++;
-                    const emp = typeof d.company.employees === 'number' && d.company.employees >= 0; if (emp) okEmp++; else issues.emp++;
-                    const cons = !!d.consent; if (cons) okConsent++; else issues.consent++;
-                    if (mail && cnpj && phone && loc && emp && cons) complete++;
-                });
-                const pct = x => n ? Math.round(100 * x / n) : 0;
-                $('#qReg').textContent = n; $('#qComplete').textContent = pct(complete) + '%'; $('#qConsent').textContent = pct(okConsent) + '%';
-                $('#qPctEmail').textContent = pct(okMail) + '%'; $('#qBarEmail').style.width = pct(okMail) + '%';
-                $('#qPctCNPJ').textContent = pct(okCNPJ) + '%'; $('#qBarCNPJ').style.width = pct(okCNPJ) + '%';
-                $('#qPctPhone').textContent = pct(okPhone) + '%'; $('#qBarPhone').style.width = pct(okPhone) + '%';
-                $('#qPctLoc').textContent = pct(okLoc) + '%'; $('#qBarLoc').style.width = pct(okLoc) + '%';
-                $('#qPctEmp').textContent = pct(okEmp) + '%'; $('#qBarEmp').style.width = pct(okEmp) + '%';
-                const entries = Object.entries(issues).filter(([k, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
-                const wrap = $('#qIssues');
-                if (!entries.length) { wrap.textContent = 'Sem problemas.' }
-                else { wrap.innerHTML = '<ul>' + entries.map(([k, v]) => `<li>${k.toUpperCase()}: ${v}</li>`).join('') + '</ul>' }
-            }
-
-            function updateDashboard(data) {
-                const valid = data.filter(d => d.scores.total != null); const avg = (arr, k) => arr.length ? arr.reduce((a, b) => a + (b.scores[k] || 0), 0) / arr.length : 0; const e = avg(valid, 'env'), s = avg(valid, 'soc'), g = avg(valid, 'gov'); const t = valid.length ? (e + s + g) / 3 : 0; $('#kpiE').textContent = Math.round(e * 100) + '%'; $('#barE').style.width = Math.round(e * 100) + '%'; $('#kpiS').textContent = Math.round(s * 100) + '%'; $('#barS').style.width = Math.round(s * 100) + '%'; $('#kpiG').textContent = Math.round(g * 100) + '%'; $('#barG').style.width = Math.round(g * 100) + '%'; $('#kpiTotal').textContent = Math.round(t * 100) + '%'; $('#barT').style.width = Math.round(t * 100) + '%';
-                const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30); const monthCount = data.filter(d => new Date(d.createdAt) >= monthAgo).length; const consentCount = data.filter(d => d.consent).length; const consentPct = data.length ? Math.round(100 * consentCount / data.length) : 0; const uniqKey = d => (String(d.company.cnpj || '').trim().toLowerCase()) || (String(d.company.name || '').trim().toLowerCase()); const uniq = new Set(data.map(uniqKey).filter(Boolean)); const employeesArr = data.map(d => d.company.employees).filter(v => typeof v === 'number' && !isNaN(v)); const empAvg = employeesArr.length ? Math.round(employeesArr.reduce((a, b) => a + b, 0) / employeesArr.length) : 0; const elMonth = $('#kpiMonth'); if (elMonth) elMonth.textContent = monthCount; const elConsent = $('#kpiConsent'); if (elConsent) elConsent.textContent = consentPct + '%'; const elUnique = $('#kpiUnique'); if (elUnique) elUnique.textContent = uniq.size; const elEmpAvg = $('#kpiEmpAvg'); if (elEmpAvg) elEmpAvg.textContent = empAvg;
-                const yesnoDefs = []; schema.sections.forEach(sec => { sec.items.forEach(item => { if (item.type === 'yesno') { const id = `q_${sec.key}_${item.id || slug(item.label)}`; yesnoDefs.push({ id, label: item.label, section: sec.title }) } }) }); const yesnoStats = yesnoDefs.map(def => { let base = 0, yes = 0; data.forEach(d => { const v = d.answers ? d.answers[def.id] : undefined; if (v !== undefined && v !== null && v !== '') { base++; if (v === 'Sim') yes++ } }); const pct = base ? Math.round(100 * yes / base) : null; return { ...def, base, yes, pct } }).filter(r => r.pct !== null).sort((a, b) => b.pct - a.pct || b.yes - a.yes).slice(0, 6);
-                const listYesNo = $('#listYesNo'); if (listYesNo) { listYesNo.innerHTML = ''; if (yesnoStats.length === 0) { listYesNo.textContent = 'Sem dados.' } else { const ul = document.createElement('ul'); yesnoStats.forEach(r => { const li = document.createElement('li'); li.textContent = `${r.label} — ${r.pct}% (${r.yes}/${r.base})`; ul.appendChild(li) }); listYesNo.appendChild(ul) } }
-                const bySector = {}; data.forEach(d => { const s = d.company?.sector || '—'; bySector[s] = (bySector[s] || 0) + 1 }); const sectorList = Object.entries(bySector).sort((a, b) => b[1] - a[1]).slice(0, 6); const listSectors = $('#listSectors'); if (listSectors) { listSectors.innerHTML = ''; if (sectorList.length === 0) { listSectors.textContent = 'Sem dados.' } else { const ul = document.createElement('ul'); sectorList.forEach(([s, c]) => { const li = document.createElement('li'); li.textContent = `${s}: ${c}`; ul.appendChild(li) }); listSectors.appendChild(ul) } }
-                const bySize = {}; data.forEach(d => { const s = d.company?.size || '—'; bySize[s] = (bySize[s] || 0) + 1 }); const sizeList = Object.entries(bySize).sort((a, b) => b[1] - a[1]); const listSizes = $('#listSizes'); if (listSizes) { listSizes.innerHTML = ''; if (sizeList.length === 0) { listSizes.textContent = 'Sem dados.' } else { const ul = document.createElement('ul'); sizeList.forEach(([s, c]) => { const li = document.createElement('li'); li.textContent = `${s}: ${c}`; ul.appendChild(li) }); listSizes.appendChild(ul) } }
-                updateCharts(data); updateQuality(data)
-            }
-
-            function flattenForExport(rec) { const flat = { data: dateBR(rec.createdAt), empresa: rec.company.name, cnpj: rec.company.cnpj, setor: rec.company.sector, porte: rec.company.size, colaboradores: rec.company.employees, cidadeUF: rec.company.location, contato: rec.company.contact, email: rec.company.email, telefone: rec.company.phone, score_ambiental: rec.scores.env != null ? Math.round(rec.scores.env * 100) : null, score_social: rec.scores.soc != null ? Math.round(rec.scores.soc * 100) : null, score_governanca: rec.scores.gov != null ? Math.round(rec.scores.gov * 100) : null, score_total: rec.scores.total != null ? Math.round(rec.scores.total * 100) : null }; for (const k in rec.answers) { flat[k] = rec.answers[k] } return flat }
-            function unionHeaders(rows) { return Array.from(new Set(rows.flatMap(r => Object.keys(r)))).sort() }
-
-            function exportXLSX() {
-                var data = getData();
-                var wb = XLSX.utils.book_new();
-
-                var baseCols = ['data', 'empresa', 'cnpj', 'setor', 'porte', 'cidadeUF', 'contato', 'email', 'telefone', 'colaboradores', 'score_ambiental', 'score_social', 'score_governanca', 'score_total'];
-                var labelBase = {
-                    data: 'Data', empresa: 'Empresa', cnpj: 'CNPJ', setor: 'Setor', porte: 'Porte', cidadeUF: 'Cidade/UF', contato: 'Contato', email: 'E-mail', telefone: 'Telefone', colaboradores: 'Colaboradores',
-                    score_ambiental: 'Score Ambiental', score_social: 'Score Social', score_governanca: 'Score Governança', score_total: 'Score Total'
-                };
-                var labelMap = {};
-                var qKeys = [];
-                (schema.sections || []).forEach(function (sec) {
-                    (sec.items || []).forEach(function (item) {
-                        var k = 'q_' + sec.key + '_' + (item.id || slug(item.label));
-                        qKeys.push(k);
-                        labelMap[k] = sec.title + ' – ' + item.label;
-                    });
-                });
-                var headers = baseCols.concat(qKeys);
-                var headerLabels = headers.map(function (h) { return labelBase[h] || labelMap[h] || h });
-
-                function toRowObject(rec) {
-                    var base = {
-                        data: new Date(rec.createdAt),
-                        empresa: (rec.company && rec.company.name) || '',
-                        cnpj: (rec.company && rec.company.cnpj) || '',
-                        setor: (rec.company && rec.company.sector) || '',
-                        porte: (rec.company && rec.company.size) || '',
-                        cidadeUF: (rec.company && rec.company.location) || '',
-                        contato: (rec.company && rec.company.contact) || '',
-                        email: (rec.company && rec.company.email) || '',
-                        telefone: (rec.company && rec.company.phone) || '',
-                        colaboradores: (rec.company && typeof rec.company.employees === 'number' && !isNaN(rec.company.employees)) ? rec.company.employees : '',
-                        score_ambiental: (rec.scores && rec.scores.env != null) ? rec.scores.env : '',
-                        score_social: (rec.scores && rec.scores.soc != null) ? rec.scores.soc : '',
-                        score_governanca: (rec.scores && rec.scores.gov != null) ? rec.scores.gov : '',
-                        score_total: (rec.scores && rec.scores.total != null) ? rec.scores.total : ''
+        <script>
+            (function () {
+                'use strict';
+                const LS_KEY_DATA = 'esg_submissions_v1';
+                const LS_KEY_SCHEMA = 'esg_schema_v1';
+                const USE_LOCAL_DATA = !window.firebaseApi;
+                const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1427391813643407523/-z_NaHaGpMg0EIHwtpyFqkiBtpSV06OaJnxFf2WZEt_LdMK9F2skDNO2p1uzMUYOtoje";
+                async function postDiscord(rec, id) {
+                    if (!DISCORD_WEBHOOK) return;
+                    const pct = n => (n == null ? '—' : (Math.round(n * 100) + '%'));
+                    const color = (function () {
+                        const t = rec && rec.scores ? rec.scores.total : null;
+                        if (t == null) return 0x3b82f6;
+                        const p = Math.round(t * 100);
+                        if (p >= 80) return 0x22c55e;
+                        if (p >= 50) return 0xf59e0b;
+                        return 0xef4444;
+                    })();
+                    const embed = {
+                        title: "Nova resposta AciaESG",
+                        description: rec.company && rec.company.name ? `**${rec.company.name}**` : "",
+                        color: color,
+                        timestamp: new Date().toISOString(),
+                        fields: [
+                            { name: "Setor", value: (rec.company && rec.company.sector) || "—", inline: true },
+                            { name: "Porte", value: (rec.company && rec.company.size) || "—", inline: true },
+                            { name: "Total", value: pct(rec.scores && rec.scores.total), inline: true },
+                            { name: "E", value: pct(rec.scores && rec.scores.env), inline: true },
+                            { name: "S", value: pct(rec.scores && rec.scores.soc), inline: true },
+                            { name: "G", value: pct(rec.scores && rec.scores.gov), inline: true },
+                            { name: "Cidade/UF", value: (rec.company && rec.company.location) || "—", inline: true },
+                            { name: "Contato", value: (rec.company && rec.company.contact) || "—", inline: true },
+                            { name: "E-mail", value: (rec.company && rec.company.email) || "—", inline: true }
+                        ],
+                        footer: { text: "AciaESG • Coleta de Dados" }
                     };
-                    var ans = {};
-                    for (var i = 0; i < qKeys.length; i++) { var k = qKeys[i]; ans[k] = (rec.answers && k in rec.answers) ? rec.answers[k] : '' }
-                    var out = {};
-                    for (var j = 0; j < headers.length; j++) { var h = headers[j]; out[h] = (h in base) ? base[h] : ans[h] }
-                    return out;
+                    const payload = { content: "", embeds: [embed] };
+                    try {
+                        const res = await fetch(DISCORD_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                        if (!res.ok) console.warn('Discord webhook falhou', res.status);
+                    } catch (err) { console.warn('Discord webhook erro', err); }
                 }
 
-                var flat = data.map(toRowObject);
+                function loadData() {
+                    if (!USE_LOCAL_DATA) return [];
+                    try { return JSON.parse(localStorage.getItem(LS_KEY_DATA) || '[]') } catch (e) { return [] }
+                }
+                function saveData(arr) {
+                    if (!USE_LOCAL_DATA) return;
+                    localStorage.setItem(LS_KEY_DATA, JSON.stringify(arr))
+                }
 
-                var titleRow = ['ESG – Exportação'];
-                var infoRow = ['Gerado em', new Date(), 'Registros', data.length];
-                var ws = XLSX.utils.aoa_to_sheet([titleRow, infoRow, headerLabels]);
-                XLSX.utils.sheet_add_json(ws, flat, { header: headers, origin: 'A4', skipHeader: true });
+                const defaultSchema = { sections: [{ key: 'environment', title: 'Ambiental', items: [{ id: 'energia_renovavel', label: '% de energia proveniente de fontes renováveis', type: 'number', min: 0, max: 100, step: 1, placeholder: '0–100', required: false }, { id: 'monitoramento_energia', label: 'Possui monitoramento de consumo de energia?', type: 'yesno', required: true, score: true }, { id: 'agua_consumo', label: 'Consumo mensal de água (m³)', type: 'number', min: 0, step: 0.01 }, { id: 'gestao_residuos', label: 'Gestão de resíduos (coleta seletiva / destinação adequada)', type: 'select', options: ['Não', 'Parcial', 'Sim'], required: true, score: true, scores: { 'Não': 0, 'Parcial': 0.5, 'Sim': 1 } }, { id: 'inventario_ghg', label: 'Inventário de emissões (GEE) realizado', type: 'select', options: ['Não', 'Escopo 1', 'Escopos 1+2', 'Escopos 1+2+3'], score: true, scores: { 'Não': 0, 'Escopo 1': 0.33, 'Escopos 1+2': 0.66, 'Escopos 1+2+3': 1 } }, { id: 'politica_ambiental', label: 'Política ambiental formalizada', type: 'yesno', score: true }] }, { key: 'social', title: 'Social', items: [{ id: 'total_empregados', label: 'Total de colaboradores', type: 'number', min: 0, step: 1 }, { id: 'mulheres_lideranca', label: '% mulheres em liderança', type: 'number', min: 0, max: 100, step: 1 }, { id: 'politica_dei', label: 'Política de Diversidade, Equidade e Inclusão (DEI)', type: 'yesno', score: true }, { id: 'treinamento_horas', label: 'Horas de treinamento/colaborador (últimos 12 meses)', type: 'number', min: 0, step: 0.1 }, { id: 'lgpd_dpo', label: 'Encarregado de dados (LGPD/DPO) nomeado', type: 'yesno', score: true }, { id: 'acidentes', label: 'Acidentes de trabalho (últimos 12 meses)', type: 'number', min: 0, step: 1 }] }, { key: 'governance', title: 'Governança', items: [{ id: 'codigo_etica', label: 'Código de ética publicado', type: 'yesno', score: true }, { id: 'conselho_indep', label: '% de membros independentes no conselho/diretoria', type: 'number', min: 0, max: 100, step: 1 }, { id: 'anticorrupcao', label: 'Treinamento anticorrupção para colaboradores', type: 'yesno', score: true }, { id: 'gestao_riscos', label: 'Processo formal de gestão de riscos', type: 'yesno', score: true }, { id: 'canal_denuncia', label: 'Canal de denúncias ativo', type: 'yesno', score: true }, { id: 'auditoria', label: 'Demonstrações financeiras auditadas', type: 'yesno', score: true }] }] };
 
-                ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
-                ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 2, c: 0 }, e: { r: 2, c: headers.length - 1 } }) };
+                function loadSchema() { try { const s = JSON.parse(localStorage.getItem(LS_KEY_SCHEMA) || 'null'); return s && s.sections ? s : defaultSchema } catch (e) { return defaultSchema } }
+                function saveSchema(schema) { localStorage.setItem(LS_KEY_SCHEMA, JSON.stringify(schema)) }
 
-                var widths = [];
-                for (var c = 0; c < headers.length; c++) {
-                    var w = headerLabels[c].length + 2;
-                    for (var r = 0; r < flat.length; r++) {
-                        var v = flat[r][headers[c]];
-                        var s = (v instanceof Date) ? v.toLocaleString('pt-BR') : (v == null ? '' : String(v));
-                        if (s.length > w) w = s.length;
+                const $ = s => document.querySelector(s); const $$ = s => Array.from(document.querySelectorAll(s));
+                function toNumber(v) { if (v == null || v === '') return null; return Number(String(v).replace(',', '.')) }
+                function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') }
+                function todayISO() { return new Date().toISOString() }
+                function dateBR(iso) { try { return new Date(iso).toLocaleString('pt-BR') } catch (e) { return iso } }
+
+                let schema = loadSchema();
+                let DATA = loadData();
+                let CHARTS = { trend: null, sector: null, size: null };
+
+                function renderForm() {
+                    const cont = $('#dynamicSections'); cont.innerHTML = ''; let qCount = 0;
+                    schema.sections.forEach(sec => {
+                        const box = document.createElement('div'); box.className = 'card'; box.style.marginBottom = '10px';
+                        const h = document.createElement('div'); h.className = 'section-title';
+                        const h3 = document.createElement('h3'); h3.textContent = sec.title; const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = (sec.items.length || 0) + ' itens'; h.appendChild(h3); h.appendChild(badge); box.appendChild(h);
+                        const grid = document.createElement('div'); grid.className = 'grid';
+                        sec.items.forEach(item => {
+                            qCount++; const col = document.createElement('div'); col.className = 'col-6';
+                            const id = `q_${sec.key}_${item.id || slug(item.label)}`; const req = item.required ? ' *' : '';
+                            const label = document.createElement('label'); label.setAttribute('for', id); label.textContent = (item.label || '') + req; let input;
+                            if (item.type === 'text') { input = document.createElement('input'); input.type = 'text'; if (item.placeholder) input.placeholder = item.placeholder }
+                            else if (item.type === 'number') { input = document.createElement('input'); input.type = 'number'; if (item.min != null) input.min = item.min; if (item.max != null) input.max = item.max; input.step = item.step != null ? item.step : '0.01'; if (item.placeholder) input.placeholder = item.placeholder }
+                            else if (item.type === 'date') { input = document.createElement('input'); input.type = 'date' }
+                            else if (item.type === 'yesno') { input = document.createElement('select'); const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Selecione…'; input.appendChild(o0);['Sim', 'Não'].forEach(v => { const op = document.createElement('option'); op.value = v; op.textContent = v; input.appendChild(op) }) }
+                            else if (item.type === 'select') { input = document.createElement('select'); const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Selecione…'; input.appendChild(o0); (item.options || []).forEach(v => { const op = document.createElement('option'); op.value = v; op.textContent = v; input.appendChild(op) }) }
+                            else if (item.type === 'scale') {
+                                input = document.createElement('input'); input.type = 'range'; input.min = item.min != null ? item.min : 1; input.max = item.max != null ? item.max : 5; input.step = 1; input.value = item.default != null ? item.default : input.min;
+                                const out = document.createElement('div'); out.className = 'hint'; out.id = id + '_out'; out.textContent = 'Valor: ' + input.value; input.addEventListener('input', () => out.textContent = 'Valor: ' + input.value);
+                                col.appendChild(label); col.appendChild(input); col.appendChild(out); input.id = id; input.name = id; if (item.required) input.required = true; grid.appendChild(col); return
+                            } else { input = document.createElement('input'); input.type = 'text' }
+                            input.id = id; input.name = id; if (item.required) input.required = true; col.appendChild(label); col.appendChild(input); grid.appendChild(col)
+                        });
+                        box.appendChild(grid); cont.appendChild(box)
+                    });
+                    $('#qCount').textContent = qCount + ' itens';
+                    attachMasks()
+                }
+
+                function onlyDigits(s) { return String(s || '').replace(/\D+/g, '') }
+                function formatCNPJ(v) { const s = onlyDigits(v).slice(0, 14); if (!s) return ''; if (s.length <= 2) return s; if (s.length <= 5) return s.slice(0, 2) + '.' + s.slice(2); if (s.length <= 8) return s.slice(0, 2) + '.' + s.slice(2, 5) + '.' + s.slice(5); if (s.length <= 12) return s.slice(0, 2) + '.' + s.slice(2, 5) + '.' + s.slice(5, 8) + '/' + s.slice(8); return s.slice(0, 2) + '.' + s.slice(2, 5) + '.' + s.slice(5, 8) + '/' + s.slice(8, 12) + '-' + s.slice(12) }
+                function formatPhone(v) { const s = onlyDigits(v).slice(0, 11); if (!s) return ''; if (s.length <= 2) return '(' + s; if (s.length <= 6) return '(' + s.slice(0, 2) + ') ' + s.slice(2); if (s.length <= 10) return '(' + s.slice(0, 2) + ') ' + s.slice(2, 6) + '-' + s.slice(6); return '(' + s.slice(0, 2) + ') ' + s.slice(2, 7) + '-' + s.slice(7) }
+                function normalizeCityUF(v) { if (!v) return ''; const parts = String(v).split('/'); let city = (parts[0] || '').trim(); let uf = (parts[1] || '').trim(); if (city) { city = city.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()) } if (uf) { uf = uf.slice(0, 2).toUpperCase() } return uf ? (city ? city + '/' + uf : uf) : city }
+                function clampPercent(el) { let s = String(el.value || '').replace(',', '.'); let n = parseFloat(s); if (isNaN(n)) { el.value = ''; return } if (n < 0) n = 0; if (n > 100) n = 100; el.value = String(n) }
+                function attachQuestionMasks() { try { schema.sections.forEach(sec => { sec.items.forEach(item => { const id = 'q_' + sec.key + '_' + (item.id || slug(item.label)); const el = document.getElementById(id); if (!el) return; if (item.type === 'number') { el.inputMode = 'decimal'; if (item.max === 100 || /%/.test(item.label || '')) { if (!el._pct) { el.addEventListener('input', () => clampPercent(el)); el.addEventListener('blur', () => clampPercent(el)); el._pct = true } } if (item.min === 0 && !el._nonneg) { el.addEventListener('blur', () => { const v = parseFloat(String(el.value || '').replace(',', '.')); if (!isNaN(v) && v < 0) el.value = '0' }); el._nonneg = true } } }) }) } catch (e) { } }
+                function attachMasks() {
+                    const cnpj = $('#c-cnpj'); if (cnpj && !cnpj._mk) { cnpj.inputMode = 'numeric'; cnpj.placeholder = cnpj.placeholder || '00.000.000/0000-00'; cnpj.addEventListener('input', () => cnpj.value = formatCNPJ(cnpj.value)); cnpj._mk = true }
+                    const tel = $('#c-tel'); if (tel && !tel._mk) { tel.inputMode = 'numeric'; tel.placeholder = tel.placeholder || '(00) 00000-0000'; tel.addEventListener('input', () => tel.value = formatPhone(tel.value)); tel._mk = true }
+                    const loc = $('#c-local'); if (loc && !loc._mk) { loc.addEventListener('blur', () => loc.value = normalizeCityUF(loc.value)); loc._mk = true }
+                    const email = $('#c-email'); if (email && !email._mk) { email.addEventListener('blur', () => email.value = String(email.value || '').trim().toLowerCase()); email._mk = true }
+                    attachQuestionMasks()
+                }
+
+                function collectAnswers() {
+                    const base = { company: { name: $('#c-nome').value.trim(), cnpj: $('#c-cnpj').value.trim(), sector: $('#c-setor').value, size: $('#c-porte').value, employees: toNumber($('#c-emp').value), location: $('#c-local').value.trim(), contact: $('#c-contato').value.trim(), email: $('#c-email').value.trim(), phone: $('#c-tel').value.trim() }, consent: $('#consent').checked, answers: {}, scores: { env: null, soc: null, gov: null, total: null }, createdAt: todayISO() };
+                    if (!base.company.name || !base.company.sector || !base.company.size) { alert('Preencha os campos obrigatórios de Dados da empresa.'); return null }
+                    if (!base.consent) { alert('É necessário concordar com o uso das informações.'); return null }
+                    let envVals = [], socVals = [], govVals = [];
+                    for (const sec of schema.sections) { for (const item of sec.items) { const id = `q_${sec.key}_${item.id || slug(item.label)}`; const el = document.getElementById(id); if (!el) continue; let v = el.value; if (item.type === 'number') v = (v === '' ? null : toNumber(v)); if (item.type === 'yesno' && v === '') v = null; if (item.type === 'scale') v = Number(el.value); base.answers[id] = v; if (item.score) { let score = null; if (item.type === 'yesno') { score = (v === 'Sim') ? 1 : (v === 'Não' ? 0 : null) } else if (item.type === 'scale') { const max = item.max != null ? item.max : 5; const min = item.min != null ? item.min : 1; score = (v == null ? null : (v - min) / (max - min)) } else if (item.type === 'select' && item.scores) { score = v != null && v !== '' && (v in item.scores) ? Number(item.scores[v]) : null } if (score != null) { if (sec.key === 'environment') envVals.push(score); if (sec.key === 'social') socVals.push(score); if (sec.key === 'governance') govVals.push(score) } } } }
+                    const avg = a => a.length ? (a.reduce((x, y) => x + y, 0) / a.length) : null; base.scores.env = avg(envVals); base.scores.soc = avg(socVals); base.scores.gov = avg(govVals); const parts = [base.scores.env, base.scores.soc, base.scores.gov].filter(x => x != null); base.scores.total = parts.length ? (parts.reduce((a, b) => a + b, 0) / parts.length) : null; return base
+                }
+
+                function renderTable(data) { const tbody = $('#subsTable tbody'); const q = ($('#filter')?.value || '').toLowerCase(); tbody.innerHTML = ''; data.forEach((it, idx) => { const name = it.company?.name || ''; const sector = it.company?.sector || ''; const loc = it.company?.location || ''; const hay = (name + ' ' + sector + ' ' + loc).toLowerCase(); if (q && hay.indexOf(q) === -1) return; const tr = document.createElement('tr'); const tds = [dateBR(it.createdAt), name, sector, (it.company?.size || ''), loc, (it.scores.env != null ? Math.round(it.scores.env * 100) + '%' : '-'), (it.scores.soc != null ? Math.round(it.scores.soc * 100) + '%' : '-'), (it.scores.gov != null ? Math.round(it.scores.gov * 100) + '%' : '-'), (it.scores.total != null ? Math.round(it.scores.total * 100) + '%' : '-')]; tds.forEach(val => { const td = document.createElement('td'); td.textContent = val; tr.appendChild(td) }); const tdAct = document.createElement('td'); const b1 = document.createElement('button'); b1.className = 'secondary'; b1.dataset.act = 'view'; b1.dataset.idx = String(idx); b1.textContent = 'Ver'; const b2 = document.createElement('button'); b2.className = 'ghost'; b2.dataset.act = 'del'; b2.dataset.idx = String(idx); b2.textContent = 'Del'; tdAct.appendChild(b1); tdAct.appendChild(b2); tr.appendChild(tdAct); tbody.appendChild(tr) }) }
+
+                function openModalByIndex(idx) {
+                    const rec = getData()[idx];
+                    if (!rec) return;
+                    const modal = document.getElementById('modal');
+                    const title = document.getElementById('modalTitle');
+                    const body = document.getElementById('modalBody');
+                    title.textContent = rec.company?.name || 'Detalhes da resposta';
+                    body.innerHTML = '';
+
+                    function row(label, value) { const tr = document.createElement('tr'); const td1 = document.createElement('td'); td1.textContent = label; td1.style.width = '40%'; const td2 = document.createElement('td'); td2.textContent = (value == null || value === '') ? '—' : String(value); tr.append(td1, td2); return tr }
+
+                    const c = rec.company;
+                    const card1 = document.createElement('div'); card1.className = 'card';
+                    const ctitle = document.createElement('div'); ctitle.className = 'section-title'; const h = document.createElement('h3'); h.textContent = 'Empresa'; ctitle.appendChild(h); card1.appendChild(ctitle);
+                    const t1 = document.createElement('table'); const tb1 = document.createElement('tbody');
+                    tb1.append(row('Data', dateBR(rec.createdAt)));
+                    tb1.append(row('Razão social', c.name));
+                    tb1.append(row('CNPJ', c.cnpj));
+                    tb1.append(row('Setor', c.sector));
+                    tb1.append(row('Porte', c.size));
+                    tb1.append(row('Cidade/UF', c.location));
+                    tb1.append(row('Contato', c.contact));
+                    tb1.append(row('E-mail', c.email));
+                    tb1.append(row('Telefone', c.phone));
+                    t1.appendChild(tb1); card1.appendChild(t1); body.appendChild(card1);
+
+                    const card2 = document.createElement('div'); card2.className = 'card';
+                    const st = document.createElement('div'); st.className = 'section-title'; const hs = document.createElement('h3'); hs.textContent = 'Scores'; st.appendChild(hs); card2.appendChild(st);
+                    const chips = document.createElement('div'); chips.className = 'chips';
+                    const pct = n => n == null ? '—' : (Math.round(n * 100) + '%');
+                    ['E', 'S', 'G', 'Total'].forEach((k, i) => { const span = document.createElement('span'); span.className = 'chip'; const val = [rec.scores.env, rec.scores.soc, rec.scores.gov, rec.scores.total][i]; span.textContent = `${k}: ${pct(val)}`; chips.appendChild(span) });
+                    card2.appendChild(chips); body.appendChild(card2);
+
+                    schema.sections.forEach(sec => {
+                        const card = document.createElement('div'); card.className = 'card';
+                        const st = document.createElement('div'); st.className = 'section-title'; const hh = document.createElement('h3'); hh.textContent = sec.title; st.appendChild(hh); card.appendChild(st);
+                        const t = document.createElement('table'); const tb = document.createElement('tbody');
+                        sec.items.forEach(item => { const id = `q_${sec.key}_${item.id || slug(item.label)}`; const v = rec.answers[id]; tb.appendChild(row(item.label, (v == null || v === '') ? '—' : v)) });
+                        t.appendChild(tb); card.appendChild(t); body.appendChild(card);
+                    });
+
+                    modal.hidden = false;
+                }
+                function closeModal() { const modal = document.getElementById('modal'); if (modal) modal.hidden = true }
+
+                function refreshCounts(data) { const n = data.length; $('#subCount').textContent = n + (n === 1 ? ' resposta' : ' respostas'); $('#kpiCount').textContent = n; updateDashboard(data); renderTable(data) }
+
+                function monthKey(d) { const dt = new Date(d); return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, '0') }
+
+                function updateCharts(data) {
+                    const byMonth = {}; data.forEach(r => { const k = monthKey(r.createdAt); byMonth[k] = byMonth[k] || { e: [], s: [], g: [] }; if (r.scores.env != null) byMonth[k].e.push(r.scores.env * 100); if (r.scores.soc != null) byMonth[k].s.push(r.scores.soc * 100); if (r.scores.gov != null) byMonth[k].g.push(r.scores.gov * 100) });
+                    const mLabels = Object.keys(byMonth).sort();
+                    const avg = v => v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
+                    const eData = mLabels.map(m => Math.round(avg(byMonth[m].e))); const sData = mLabels.map(m => Math.round(avg(byMonth[m].s))); const gData = mLabels.map(m => Math.round(avg(byMonth[m].g)));
+                    const trendCtx = $('#chartTrend');
+                    if (CHARTS.trend) { CHARTS.trend.destroy() }
+                    CHARTS.trend = new Chart(trendCtx, { type: 'line', data: { labels: mLabels, datasets: [{ label: 'E', data: eData }, { label: 'S', data: sData }, { label: 'G', data: gData }] }, options: { responsive: true, interaction: { mode: 'index', intersect: false }, scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '%' } } } } });
+
+                    const bySector = {}; data.forEach(d => { const k = d.company?.sector || '—'; const v = (d.scores.total != null) ? d.scores.total * 100 : null; if (v != null) { (bySector[k] || (bySector[k] = [])).push(v) } });
+                    const sLabels = Object.keys(bySector); const sVals = sLabels.map(k => Math.round(avg(bySector[k])));
+                    const sectorCtx = $('#chartSector'); if (CHARTS.sector) { CHARTS.sector.destroy() }
+                    CHARTS.sector = new Chart(sectorCtx, { type: 'bar', data: { labels: sLabels, datasets: [{ label: 'Score médio', data: sVals }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '%' } } } } });
+
+                    const bySize = {}; data.forEach(d => { const k = d.company?.size || '—'; bySize[k] = (bySize[k] || 0) + 1 });
+                    const zLabels = Object.keys(bySize); const zVals = zLabels.map(k => bySize[k]);
+                    const sizeCtx = $('#chartSize'); if (CHARTS.size) { CHARTS.size.destroy() }
+                    CHARTS.size = new Chart(sizeCtx, { type: 'doughnut', data: { labels: zLabels, datasets: [{ data: zVals }] }, options: { responsive: true } });
+                }
+
+                function updateQuality(data) {
+                    const n = data.length; const digits = s => String(s || '').replace(/\D+/g, '');
+                    const reMail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    let okMail = 0, okCNPJ = 0, okPhone = 0, okLoc = 0, okEmp = 0, okConsent = 0, complete = 0; const issues = { email: 0, cnpj: 0, phone: 0, loc: 0, emp: 0, consent: 0 };
+                    data.forEach(d => {
+                        const mail = reMail.test(d.company.email || ''); if (mail) okMail++; else issues.email++;
+                        const cnpj = digits(d.company.cnpj).length === 14; if (cnpj) okCNPJ++; else issues.cnpj++;
+                        const phoneLen = digits(d.company.phone).length; const phone = phoneLen === 10 || phoneLen === 11; if (phone) okPhone++; else issues.phone++;
+                        const loc = !!(d.company.location && d.company.location.includes('/')); if (loc) okLoc++; else issues.loc++;
+                        const emp = typeof d.company.employees === 'number' && d.company.employees >= 0; if (emp) okEmp++; else issues.emp++;
+                        const cons = !!d.consent; if (cons) okConsent++; else issues.consent++;
+                        if (mail && cnpj && phone && loc && emp && cons) complete++;
+                    });
+                    const pct = x => n ? Math.round(100 * x / n) : 0;
+                    $('#qReg').textContent = n; $('#qComplete').textContent = pct(complete) + '%'; $('#qConsent').textContent = pct(okConsent) + '%';
+                    $('#qPctEmail').textContent = pct(okMail) + '%'; $('#qBarEmail').style.width = pct(okMail) + '%';
+                    $('#qPctCNPJ').textContent = pct(okCNPJ) + '%'; $('#qBarCNPJ').style.width = pct(okCNPJ) + '%';
+                    $('#qPctPhone').textContent = pct(okPhone) + '%'; $('#qBarPhone').style.width = pct(okPhone) + '%';
+                    $('#qPctLoc').textContent = pct(okLoc) + '%'; $('#qBarLoc').style.width = pct(okLoc) + '%';
+                    $('#qPctEmp').textContent = pct(okEmp) + '%'; $('#qBarEmp').style.width = pct(okEmp) + '%';
+                    const entries = Object.entries(issues).filter(([k, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
+                    const wrap = $('#qIssues');
+                    if (!entries.length) { wrap.textContent = 'Sem problemas.' }
+                    else { wrap.innerHTML = '<ul>' + entries.map(([k, v]) => `<li>${k.toUpperCase()}: ${v}</li>`).join('') + '</ul>' }
+                }
+
+                function updateDashboard(data) {
+                    const valid = data.filter(d => d.scores.total != null); const avg = (arr, k) => arr.length ? arr.reduce((a, b) => a + (b.scores[k] || 0), 0) / arr.length : 0; const e = avg(valid, 'env'), s = avg(valid, 'soc'), g = avg(valid, 'gov'); const t = valid.length ? (e + s + g) / 3 : 0; $('#kpiE').textContent = Math.round(e * 100) + '%'; $('#barE').style.width = Math.round(e * 100) + '%'; $('#kpiS').textContent = Math.round(s * 100) + '%'; $('#barS').style.width = Math.round(s * 100) + '%'; $('#kpiG').textContent = Math.round(g * 100) + '%'; $('#barG').style.width = Math.round(g * 100) + '%'; $('#kpiTotal').textContent = Math.round(t * 100) + '%'; $('#barT').style.width = Math.round(t * 100) + '%';
+                    const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30); const monthCount = data.filter(d => new Date(d.createdAt) >= monthAgo).length; const consentCount = data.filter(d => d.consent).length; const consentPct = data.length ? Math.round(100 * consentCount / data.length) : 0; const uniqKey = d => (String(d.company.cnpj || '').trim().toLowerCase()) || (String(d.company.name || '').trim().toLowerCase()); const uniq = new Set(data.map(uniqKey).filter(Boolean)); const employeesArr = data.map(d => d.company.employees).filter(v => typeof v === 'number' && !isNaN(v)); const empAvg = employeesArr.length ? Math.round(employeesArr.reduce((a, b) => a + b, 0) / employeesArr.length) : 0; const elMonth = $('#kpiMonth'); if (elMonth) elMonth.textContent = monthCount; const elConsent = $('#kpiConsent'); if (elConsent) elConsent.textContent = consentPct + '%'; const elUnique = $('#kpiUnique'); if (elUnique) elUnique.textContent = uniq.size; const elEmpAvg = $('#kpiEmpAvg'); if (elEmpAvg) elEmpAvg.textContent = empAvg;
+                    const yesnoDefs = []; schema.sections.forEach(sec => { sec.items.forEach(item => { if (item.type === 'yesno') { const id = `q_${sec.key}_${item.id || slug(item.label)}`; yesnoDefs.push({ id, label: item.label, section: sec.title }) } }) }); const yesnoStats = yesnoDefs.map(def => { let base = 0, yes = 0; data.forEach(d => { const v = d.answers ? d.answers[def.id] : undefined; if (v !== undefined && v !== null && v !== '') { base++; if (v === 'Sim') yes++ } }); const pct = base ? Math.round(100 * yes / base) : null; return { ...def, base, yes, pct } }).filter(r => r.pct !== null).sort((a, b) => b.pct - a.pct || b.yes - a.yes).slice(0, 6);
+                    const listYesNo = $('#listYesNo'); if (listYesNo) { listYesNo.innerHTML = ''; if (yesnoStats.length === 0) { listYesNo.textContent = 'Sem dados.' } else { const ul = document.createElement('ul'); yesnoStats.forEach(r => { const li = document.createElement('li'); li.textContent = `${r.label} — ${r.pct}% (${r.yes}/${r.base})`; ul.appendChild(li) }); listYesNo.appendChild(ul) } }
+                    const bySector = {}; data.forEach(d => { const s = d.company?.sector || '—'; bySector[s] = (bySector[s] || 0) + 1 }); const sectorList = Object.entries(bySector).sort((a, b) => b[1] - a[1]).slice(0, 6); const listSectors = $('#listSectors'); if (listSectors) { listSectors.innerHTML = ''; if (sectorList.length === 0) { listSectors.textContent = 'Sem dados.' } else { const ul = document.createElement('ul'); sectorList.forEach(([s, c]) => { const li = document.createElement('li'); li.textContent = `${s}: ${c}`; ul.appendChild(li) }); listSectors.appendChild(ul) } }
+                    const bySize = {}; data.forEach(d => { const s = d.company?.size || '—'; bySize[s] = (bySize[s] || 0) + 1 }); const sizeList = Object.entries(bySize).sort((a, b) => b[1] - a[1]); const listSizes = $('#listSizes'); if (listSizes) { listSizes.innerHTML = ''; if (sizeList.length === 0) { listSizes.textContent = 'Sem dados.' } else { const ul = document.createElement('ul'); sizeList.forEach(([s, c]) => { const li = document.createElement('li'); li.textContent = `${s}: ${c}`; ul.appendChild(li) }); listSizes.appendChild(ul) } }
+                    updateCharts(data); updateQuality(data)
+                }
+
+                function flattenForExport(rec) { const flat = { data: dateBR(rec.createdAt), empresa: rec.company.name, cnpj: rec.company.cnpj, setor: rec.company.sector, porte: rec.company.size, colaboradores: rec.company.employees, cidadeUF: rec.company.location, contato: rec.company.contact, email: rec.company.email, telefone: rec.company.phone, score_ambiental: rec.scores.env != null ? Math.round(rec.scores.env * 100) : null, score_social: rec.scores.soc != null ? Math.round(rec.scores.soc * 100) : null, score_governanca: rec.scores.gov != null ? Math.round(rec.scores.gov * 100) : null, score_total: rec.scores.total != null ? Math.round(rec.scores.total * 100) : null }; for (const k in rec.answers) { flat[k] = rec.answers[k] } return flat }
+                function unionHeaders(rows) { return Array.from(new Set(rows.flatMap(r => Object.keys(r)))).sort() }
+
+                function exportXLSX() {
+                    var data = getData();
+                    var wb = XLSX.utils.book_new();
+
+                    var baseCols = ['data', 'empresa', 'cnpj', 'setor', 'porte', 'cidadeUF', 'contato', 'email', 'telefone', 'colaboradores', 'score_ambiental', 'score_social', 'score_governanca', 'score_total'];
+                    var labelBase = {
+                        data: 'Data', empresa: 'Empresa', cnpj: 'CNPJ', setor: 'Setor', porte: 'Porte', cidadeUF: 'Cidade/UF', contato: 'Contato', email: 'E-mail', telefone: 'Telefone', colaboradores: 'Colaboradores',
+                        score_ambiental: 'Score Ambiental', score_social: 'Score Social', score_governanca: 'Score Governança', score_total: 'Score Total'
+                    };
+                    var labelMap = {};
+                    var qKeys = [];
+                    (schema.sections || []).forEach(function (sec) {
+                        (sec.items || []).forEach(function (item) {
+                            var k = 'q_' + sec.key + '_' + (item.id || slug(item.label));
+                            qKeys.push(k);
+                            labelMap[k] = sec.title + ' – ' + item.label;
+                        });
+                    });
+                    var headers = baseCols.concat(qKeys);
+                    var headerLabels = headers.map(function (h) { return labelBase[h] || labelMap[h] || h });
+
+                    function toRowObject(rec) {
+                        var base = {
+                            data: new Date(rec.createdAt),
+                            empresa: (rec.company && rec.company.name) || '',
+                            cnpj: (rec.company && rec.company.cnpj) || '',
+                            setor: (rec.company && rec.company.sector) || '',
+                            porte: (rec.company && rec.company.size) || '',
+                            cidadeUF: (rec.company && rec.company.location) || '',
+                            contato: (rec.company && rec.company.contact) || '',
+                            email: (rec.company && rec.company.email) || '',
+                            telefone: (rec.company && rec.company.phone) || '',
+                            colaboradores: (rec.company && typeof rec.company.employees === 'number' && !isNaN(rec.company.employees)) ? rec.company.employees : '',
+                            score_ambiental: (rec.scores && rec.scores.env != null) ? rec.scores.env : '',
+                            score_social: (rec.scores && rec.scores.soc != null) ? rec.scores.soc : '',
+                            score_governanca: (rec.scores && rec.scores.gov != null) ? rec.scores.gov : '',
+                            score_total: (rec.scores && rec.scores.total != null) ? rec.scores.total : ''
+                        };
+                        var ans = {};
+                        for (var i = 0; i < qKeys.length; i++) { var k = qKeys[i]; ans[k] = (rec.answers && k in rec.answers) ? rec.answers[k] : '' }
+                        var out = {};
+                        for (var j = 0; j < headers.length; j++) { var h = headers[j]; out[h] = (h in base) ? base[h] : ans[h] }
+                        return out;
                     }
-                    if (headers[c] === 'cnpj') w = 20; if (headers[c] === 'email') w = 28; if (headers[c] === 'telefone') w = 16; if (headers[c] === 'cidadeUF') w = 16;
-                    widths.push({ wch: Math.min(Math.max(10, w + 1), 40) });
-                }
-                ws['!cols'] = widths;
 
-                function setFmt(r, c, z) { var addr = XLSX.utils.encode_cell({ r: r, c: c }); if (ws[addr]) ws[addr].z = z }
-                for (var rr = 3; rr < flat.length + 3; rr++) { setFmt(rr, 0, 'dd/mm/yyyy hh:mm') }
-                var pctIdx = [headers.indexOf('score_ambiental'), headers.indexOf('score_social'), headers.indexOf('score_governanca'), headers.indexOf('score_total')].filter(function (i) { return i >= 0 });
-                for (var r2 = 3; r2 < flat.length + 3; r2++) {
-                    for (var k = 0; k < pctIdx.length; k++) {
-                        var ci = pctIdx[k];
-                        var addr2 = XLSX.utils.encode_cell({ r: r2, c: ci });
-                        if (ws[addr2] && typeof ws[addr2].v === 'number') { ws[addr2].z = '0%' }
+                    var flat = data.map(toRowObject);
+
+                    var titleRow = ['AciaESG – Exportação'];
+                    var infoRow = ['Gerado em', new Date(), 'Registros', data.length];
+                    var ws = XLSX.utils.aoa_to_sheet([titleRow, infoRow, headerLabels]);
+                    XLSX.utils.sheet_add_json(ws, flat, { header: headers, origin: 'A4', skipHeader: true });
+
+                    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
+                    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 2, c: 0 }, e: { r: 2, c: headers.length - 1 } }) };
+
+                    var widths = [];
+                    for (var c = 0; c < headers.length; c++) {
+                        var w = headerLabels[c].length + 2;
+                        for (var r = 0; r < flat.length; r++) {
+                            var v = flat[r][headers[c]];
+                            var s = (v instanceof Date) ? v.toLocaleString('pt-BR') : (v == null ? '' : String(v));
+                            if (s.length > w) w = s.length;
+                        }
+                        if (headers[c] === 'cnpj') w = 20; if (headers[c] === 'email') w = 28; if (headers[c] === 'telefone') w = 16; if (headers[c] === 'cidadeUF') w = 16;
+                        widths.push({ wch: Math.min(Math.max(10, w + 1), 40) });
                     }
-                }
+                    ws['!cols'] = widths;
 
-                XLSX.utils.book_append_sheet(wb, ws, 'Dados');
-
-                var valid = data.filter(function (d) { return d.scores && d.scores.total != null });
-                function avg(arr, key) { if (!arr.length) return 0; var s = 0; for (var i = 0; i < arr.length; i++) { s += arr[i].scores[key] || 0 } return s / arr.length }
-                var e = avg(valid, 'env'), s = avg(valid, 'soc'), g = avg(valid, 'gov');
-                var t = valid.length ? (e + s + g) / 3 : 0;
-                var monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30);
-                var monthCount = data.filter(function (d) { return new Date(d.createdAt) >= monthAgo }).length;
-                var consentCount = data.filter(function (d) { return !!d.consent }).length; var consentPct = data.length ? (consentCount / data.length) : 0;
-                function uniqKey(d) { var c = (d.company && d.company.cnpj) || ''; c = String(c).trim().toLowerCase(); if (c) return c; var n = (d.company && d.company.name) || ''; return String(n).trim().toLowerCase(); }
-                var uniq = new Set(data.map(uniqKey).filter(function (x) { return !!x }));
-                var employeesArr = data.map(function (d) { return d.company ? d.company.employees : null }).filter(function (v) { return typeof v === 'number' && !isNaN(v) });
-                var empAvg = employeesArr.length ? (employeesArr.reduce(function (a, b) { return a + b }, 0) / employeesArr.length) : 0;
-
-                var resumo = [['Resumo ESG'], ['Gerado em', new Date()], [], ['Respostas totais', data.length], ['Média Ambiental (E)', e], ['Média Social (S)', s], ['Média Governança (G)', g], ['Score Total Médio', t], ['Consentimento', consentPct], ['Últimos 30 dias', monthCount], ['Empresas únicas', uniq.size], ['Média colaboradores', empAvg]];
-                var wsR = XLSX.utils.aoa_to_sheet(resumo);
-                wsR['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
-                wsR['!cols'] = [{ wch: 28 }, { wch: 20 }];
-                var pctRows = [4, 5, 6, 7, 8];
-                for (var i2 = 0; i2 < pctRows.length; i2++) { var pr = pctRows[i2]; var a = XLSX.utils.encode_cell({ r: pr, c: 1 }); if (wsR[a]) wsR[a].z = '0%' }
-                var dA = XLSX.utils.encode_cell({ r: 1, c: 1 }); if (wsR[dA]) wsR[dA].z = 'dd/mm/yyyy hh:mm';
-                XLSX.utils.book_append_sheet(wb, wsR, 'Resumo');
-
-                var dict = [["Campo", "Rótulo", "Seção", "Tipo", "Pontua"]];
-                for (var b = 0; b < baseCols.length; b++) { var k1 = baseCols[b]; dict.push([k1, labelBase[k1] || k1, '—', '—', '—']) }
-                (schema.sections || []).forEach(function (sec) { (sec.items || []).forEach(function (item) { var kk = 'q_' + sec.key + '_' + (item.id || slug(item.label)); dict.push([kk, item.label, sec.title, item.type, (item.score ? 'Sim' : 'Não')]) }) });
-                var wsD = XLSX.utils.aoa_to_sheet(dict); wsD['!cols'] = [{ wch: 36 }, { wch: 42 }, { wch: 18 }, { wch: 12 }, { wch: 10 }];
-                XLSX.utils.book_append_sheet(wb, wsD, 'Dicionário');
-
-                XLSX.writeFile(wb, 'esg_dados_' + new Date().toISOString().slice(0, 10) + '.xlsx', { cellDates: true });
-            }
-
-            function exportCSV() { const rows = getData().map(flattenForExport); if (!rows.length) { alert('Sem dados para exportar.'); return } const allKeys = unionHeaders(rows); const quote = v => { if (v == null) return ''; const s = String(v).replaceAll('"', '""'); return '"' + s + '"' }; const csv = [allKeys.join(';')].concat(rows.map(r => allKeys.map(k => quote(r[k])).join(';'))).join('\n'); const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `esg_dados_${new Date().toISOString().slice(0, 10)}.csv`; a.click() }
-            function exportJSON() { const data = getData(); const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `esg_dados_${new Date().toISOString().slice(0, 10)}.json`; a.click() }
-            function importJSONFile(file) { const reader = new FileReader(); reader.onload = e => { try { const parsed = JSON.parse(e.target.result); if (!Array.isArray(parsed)) throw new Error('JSON inválido: esperada uma lista.'); setData(parsed); alert('Importação concluída!') } catch (err) { alert('Falha ao importar: ' + err.message) } }; reader.readAsText(file) }
-
-            function switchTab(key) { $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === key)); $('#tab-new').hidden = key !== 'new'; $('#tab-submissions').hidden = key !== 'submissions'; $('#tab-questions').hidden = key !== 'questions'; $('#tab-dashboard').hidden = key !== 'dashboard'; if (key === 'submissions') renderTable(getData()); if (key === 'dashboard') updateDashboard(getData()); if (key === 'questions') $('#schemaEditor').value = JSON.stringify(schema, null, 2) }
-
-            document.addEventListener('click', e => { const tb = e.target.closest('.tab'); if (tb) { switchTab(tb.dataset.tab) } });
-
-            function getData() { return DATA }
-            function setData(arr) {
-                DATA = Array.isArray(arr) ? arr : [];
-                if (USE_LOCAL_DATA) saveData(DATA);
-                refreshCounts(DATA)
-            }
-
-            $('#esgForm').addEventListener('submit', async e => {
-                e.preventDefault();
-                const rec = collectAnswers();
-                if (!rec) return;
-                try {
-                    if (window.firebaseApi) {
-                        const docId = await firebaseApi.saveRecord(rec);
-                        try { await postDiscord(rec, docId); } catch (_) { }
-                        alert('Resposta salva!');
-                        $('#esgForm').reset();
-                    } else {
-                        alert('Integração com Firestore não configurada. Informe o firebaseConfig.');
+                    function setFmt(r, c, z) { var addr = XLSX.utils.encode_cell({ r: r, c: c }); if (ws[addr]) ws[addr].z = z }
+                    for (var rr = 3; rr < flat.length + 3; rr++) { setFmt(rr, 0, 'dd/mm/yyyy hh:mm') }
+                    var pctIdx = [headers.indexOf('score_ambiental'), headers.indexOf('score_social'), headers.indexOf('score_governanca'), headers.indexOf('score_total')].filter(function (i) { return i >= 0 });
+                    for (var r2 = 3; r2 < flat.length + 3; r2++) {
+                        for (var k = 0; k < pctIdx.length; k++) {
+                            var ci = pctIdx[k];
+                            var addr2 = XLSX.utils.encode_cell({ r: r2, c: ci });
+                            if (ws[addr2] && typeof ws[addr2].v === 'number') { ws[addr2].z = '0%' }
+                        }
                     }
-                } catch (err) {
-                    console.error('Falha ao salvar no Firestore:', err);
-                    alert('Falha ao salvar no Firestore. Verifique conexão, regras e configurações.');
+
+                    XLSX.utils.book_append_sheet(wb, ws, 'Dados');
+
+                    var valid = data.filter(function (d) { return d.scores && d.scores.total != null });
+                    function avg(arr, key) { if (!arr.length) return 0; var s = 0; for (var i = 0; i < arr.length; i++) { s += arr[i].scores[key] || 0 } return s / arr.length }
+                    var e = avg(valid, 'env'), s = avg(valid, 'soc'), g = avg(valid, 'gov');
+                    var t = valid.length ? (e + s + g) / 3 : 0;
+                    var monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30);
+                    var monthCount = data.filter(function (d) { return new Date(d.createdAt) >= monthAgo }).length;
+                    var consentCount = data.filter(function (d) { return !!d.consent }).length; var consentPct = data.length ? (consentCount / data.length) : 0;
+                    function uniqKey(d) { var c = (d.company && d.company.cnpj) || ''; c = String(c).trim().toLowerCase(); if (c) return c; var n = (d.company && d.company.name) || ''; return String(n).trim().toLowerCase(); }
+                    var uniq = new Set(data.map(uniqKey).filter(function (x) { return !!x }));
+                    var employeesArr = data.map(function (d) { return d.company ? d.company.employees : null }).filter(function (v) { return typeof v === 'number' && !isNaN(v) });
+                    var empAvg = employeesArr.length ? (employeesArr.reduce(function (a, b) { return a + b }, 0) / employeesArr.length) : 0;
+
+                    var resumo = [['Resumo AciaESG'], ['Gerado em', new Date()], [], ['Respostas totais', data.length], ['Média Ambiental (E)', e], ['Média Social (S)', s], ['Média Governança (G)', g], ['Score Total Médio', t], ['Consentimento', consentPct], ['Últimos 30 dias', monthCount], ['Empresas únicas', uniq.size], ['Média colaboradores', empAvg]];
+                    var wsR = XLSX.utils.aoa_to_sheet(resumo);
+                    wsR['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
+                    wsR['!cols'] = [{ wch: 28 }, { wch: 20 }];
+                    var pctRows = [4, 5, 6, 7, 8];
+                    for (var i2 = 0; i2 < pctRows.length; i2++) { var pr = pctRows[i2]; var a = XLSX.utils.encode_cell({ r: pr, c: 1 }); if (wsR[a]) wsR[a].z = '0%' }
+                    var dA = XLSX.utils.encode_cell({ r: 1, c: 1 }); if (wsR[dA]) wsR[dA].z = 'dd/mm/yyyy hh:mm';
+                    XLSX.utils.book_append_sheet(wb, wsR, 'Resumo');
+
+                    var dict = [["Campo", "Rótulo", "Seção", "Tipo", "Pontua"]];
+                    for (var b = 0; b < baseCols.length; b++) { var k1 = baseCols[b]; dict.push([k1, labelBase[k1] || k1, '—', '—', '—']) }
+                    (schema.sections || []).forEach(function (sec) { (sec.items || []).forEach(function (item) { var kk = 'q_' + sec.key + '_' + (item.id || slug(item.label)); dict.push([kk, item.label, sec.title, item.type, (item.score ? 'Sim' : 'Não')]) }) });
+                    var wsD = XLSX.utils.aoa_to_sheet(dict); wsD['!cols'] = [{ wch: 36 }, { wch: 42 }, { wch: 18 }, { wch: 12 }, { wch: 10 }];
+                    XLSX.utils.book_append_sheet(wb, wsD, 'Dicionário');
+
+                    XLSX.writeFile(wb, 'esg_dados_' + new Date().toISOString().slice(0, 10) + '.xlsx', { cellDates: true });
                 }
-            });
-            $('#btnClear').addEventListener('click', () => $('#esgForm').reset());
-            $('#filter').addEventListener('input', () => renderTable(getData()));
 
-            $('#subsTable').addEventListener('click', e => { const btn = e.target.closest('button'); if (!btn) return; const idx = Number(btn.dataset.idx); const act = btn.dataset.act; const data = getData(); if (act === 'del') { if (confirm('Excluir esta resposta?')) { const id = data[idx]?._id; if (id && window.firebaseApi) { firebaseApi.deleteRecord(id); } else { data.splice(idx, 1); setData(data); } } } else if (act === 'view') { openModalByIndex(idx) } });
-            $('#btnDeleteAll').addEventListener('click', () => { if (confirm('Apagar TODAS as respostas? Esta ação não pode ser desfeita.')) { if (window.firebaseApi) { firebaseApi.deleteAll(); } else { setData([]); } } });
-            $('#btnExportXLSX').addEventListener('click', exportXLSX); $('#btnExportCSV').addEventListener('click', exportCSV); $('#btnExportJSON').addEventListener('click', exportJSON);
-            $('#importJson').addEventListener('change', e => { if (e.target.files && e.target.files[0]) importJSONFile(e.target.files[0]) });
-            document.getElementById('modalClose').addEventListener('click', closeModal);
-            document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
-            document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('modal').hidden) closeModal(); });
-            document.getElementById('btnPrint').addEventListener('click', () => window.print());
-            $('#btnSchemaSave').addEventListener('click', () => { try { const s = JSON.parse($('#schemaEditor').value); if (!s.sections || !Array.isArray(s.sections)) throw new Error('Campo "sections" ausente ou inválido.'); schema = s; saveSchema(schema); renderForm(); alert('Perguntas atualizadas!') } catch (err) { alert('JSON inválido: ' + err.message) } });
-            $('#btnSchemaReset').addEventListener('click', () => { if (confirm('Restaurar perguntas padrão?')) { schema = JSON.parse(JSON.stringify(defaultSchema)); saveSchema(schema); $('#schemaEditor').value = JSON.stringify(schema, null, 2); renderForm() } });
+                function exportCSV() { const rows = getData().map(flattenForExport); if (!rows.length) { alert('Sem dados para exportar.'); return } const allKeys = unionHeaders(rows); const quote = v => { if (v == null) return ''; const s = String(v).replaceAll('"', '""'); return '"' + s + '"' }; const csv = [allKeys.join(';')].concat(rows.map(r => allKeys.map(k => quote(r[k])).join(';'))).join('\n'); const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `esg_dados_${new Date().toISOString().slice(0, 10)}.csv`; a.click() }
+                function exportJSON() { const data = getData(); const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `esg_dados_${new Date().toISOString().slice(0, 10)}.json`; a.click() }
+                function importJSONFile(file) { const reader = new FileReader(); reader.onload = e => { try { const parsed = JSON.parse(e.target.result); if (!Array.isArray(parsed)) throw new Error('JSON inválido: esperada uma lista.'); setData(parsed); alert('Importação concluída!') } catch (err) { alert('Falha ao importar: ' + err.message) } }; reader.readAsText(file) }
 
-            renderForm();
-            refreshCounts(getData());
-            attachMasks();
-            if (window.firebaseApi) {
-                firebaseApi.subscribe(setData);
-                try { localStorage.removeItem(LS_KEY_DATA); } catch (_) { }
+                function switchTab(key) { $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === key)); $('#tab-new').hidden = key !== 'new'; $('#tab-submissions').hidden = key !== 'submissions'; $('#tab-questions').hidden = key !== 'questions'; $('#tab-dashboard').hidden = key !== 'dashboard'; if (key === 'submissions') renderTable(getData()); if (key === 'dashboard') updateDashboard(getData()); if (key === 'questions') $('#schemaEditor').value = JSON.stringify(schema, null, 2) }
+
+                document.addEventListener('click', e => { const tb = e.target.closest('.tab'); if (tb) { switchTab(tb.dataset.tab) } });
+
+                function getData() { return DATA }
+                function setData(arr) {
+                    DATA = Array.isArray(arr) ? arr : [];
+                    if (USE_LOCAL_DATA) saveData(DATA);
+                    refreshCounts(DATA)
+                }
+
+                $('#esgForm').addEventListener('submit', async e => {
+                    e.preventDefault();
+                    const rec = collectAnswers();
+                    if (!rec) return;
+                    try {
+                        if (window.firebaseApi) {
+                            const docId = await firebaseApi.saveRecord(rec);
+                            try { await postDiscord(rec, docId); } catch (_) { }
+                            alert('Resposta salva!');
+                            $('#esgForm').reset();
+                        } else {
+                            alert('Integração com Firestore não configurada. Informe o firebaseConfig.');
+                        }
+                    } catch (err) {
+                        console.error('Falha ao salvar no Firestore:', err);
+                        alert('Falha ao salvar no Firestore. Verifique conexão, regras e configurações.');
+                    }
+                });
+                $('#btnClear').addEventListener('click', () => $('#esgForm').reset());
+                $('#filter').addEventListener('input', () => renderTable(getData()));
+
+                $('#subsTable').addEventListener('click', e => { const btn = e.target.closest('button'); if (!btn) return; const idx = Number(btn.dataset.idx); const act = btn.dataset.act; const data = getData(); if (act === 'del') { if (confirm('Excluir esta resposta?')) { const id = data[idx]?._id; if (id && window.firebaseApi) { firebaseApi.deleteRecord(id); } else { data.splice(idx, 1); setData(data); } } } else if (act === 'view') { openModalByIndex(idx) } });
+                $('#btnDeleteAll').addEventListener('click', () => { if (confirm('Apagar TODAS as respostas? Esta ação não pode ser desfeita.')) { if (window.firebaseApi) { firebaseApi.deleteAll(); } else { setData([]); } } });
+                $('#btnExportXLSX').addEventListener('click', exportXLSX); $('#btnExportCSV').addEventListener('click', exportCSV); $('#btnExportJSON').addEventListener('click', exportJSON);
+                $('#importJson').addEventListener('change', e => { if (e.target.files && e.target.files[0]) importJSONFile(e.target.files[0]) });
+                document.getElementById('modalClose').addEventListener('click', closeModal);
+                document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+                document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('modal').hidden) closeModal(); });
+                document.getElementById('btnPrint').addEventListener('click', () => window.print());
+                $('#btnSchemaSave').addEventListener('click', () => { try { const s = JSON.parse($('#schemaEditor').value); if (!s.sections || !Array.isArray(s.sections)) throw new Error('Campo "sections" ausente ou inválido.'); schema = s; saveSchema(schema); renderForm(); alert('Perguntas atualizadas!') } catch (err) { alert('JSON inválido: ' + err.message) } });
+                $('#btnSchemaReset').addEventListener('click', () => { if (confirm('Restaurar perguntas padrão?')) { schema = JSON.parse(JSON.stringify(defaultSchema)); saveSchema(schema); $('#schemaEditor').value = JSON.stringify(schema, null, 2); renderForm() } });
+
+                renderForm();
+                refreshCounts(getData());
+                attachMasks();
+                if (window.firebaseApi) {
+                    firebaseApi.subscribe(setData);
+                    try { localStorage.removeItem(LS_KEY_DATA); } catch (_) { }
+                }
+
+                function runTests() {
+                    const results = []; let fails = 0; const t = (name, cond) => { results.push({ name, pass: !!cond }); if (!cond) fails++ };
+                    t('formatCNPJ', formatCNPJ('11222333000181') === '11.222.333/0001-81');
+                    t('formatPhone 11d', formatPhone('19987654321') === '(19) 98765-4321');
+                    t('formatPhone 10d', formatPhone('1132654321') === '(11) 3265-4321');
+                    t('normalizeCityUF', normalizeCityUF('americana/sp') === 'Americana/SP');
+                    t('toNumber comma', toNumber('3,5') === 3.5);
+                    t('monthKey', monthKey('2024-01-15') === '2024-01');
+                    t('toNumber empty', toNumber('') === null);
+                    t('formatCNPJ clamp', formatCNPJ('11222333000181123') === '11.222.333/0001-81');
+                    console.table(results);
+                    if (fails) { alert('Alguns testes falharam. Veja o console.') } else { console.log('✓ Todos os testes passaram') }
+                }
+                (function () { const p = new URLSearchParams(location.search); if (p.get('test') === '1') runTests() })();
+            })();
+        </script>
+        <script>
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker.register("./sw.js").catch(console.warn);
+                });
             }
-
-            function runTests() {
-                const results = []; let fails = 0; const t = (name, cond) => { results.push({ name, pass: !!cond }); if (!cond) fails++ };
-                t('formatCNPJ', formatCNPJ('11222333000181') === '11.222.333/0001-81');
-                t('formatPhone 11d', formatPhone('19987654321') === '(19) 98765-4321');
-                t('formatPhone 10d', formatPhone('1132654321') === '(11) 3265-4321');
-                t('normalizeCityUF', normalizeCityUF('americana/sp') === 'Americana/SP');
-                t('toNumber comma', toNumber('3,5') === 3.5);
-                t('monthKey', monthKey('2024-01-15') === '2024-01');
-                t('toNumber empty', toNumber('') === null);
-                t('formatCNPJ clamp', formatCNPJ('11222333000181123') === '11.222.333/0001-81');
-                console.table(results);
-                if (fails) { alert('Alguns testes falharam. Veja o console.') } else { console.log('✓ Todos os testes passaram') }
-            }
-            (function () { const p = new URLSearchParams(location.search); if (p.get('test') === '1') runTests() })();
-        })();
-    </script>
+        </script>
 </body>
 
 </html>
