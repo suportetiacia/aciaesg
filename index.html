@@ -496,16 +496,15 @@
             <div class="help" style="margin-bottom:12px">
                 <strong>Como usar:</strong>
                 <ul>
-                    <li>Edite o <em>schema</em> JSON das perguntas abaixo. Ao salvar, o formulário será gerado
-                        automaticamente.</li>
-                    <li>Tipos suportados: <code>text</code>, <code>number</code>, <code>yesno</code>,
-                        <code>select</code>, <code>scale</code>, <code>date</code>.
-                    </li>
-                    <li>Para pontuação (<em>score</em>):
+                    <li>No schema, você pode usar:
                         <ul>
-                            <li><code>yesno</code>: "Sim"=1, "Não"=0</li>
-                            <li><code>scale</code>: valor / <code>max</code> (padrão 5)</li>
-                            <li><code>select</code>: use <code>scores: {"opção": 0..1}</code></li>
+                            <li><code>weight</code> (número &gt; 0) para dar peso maior/menor a uma pergunta que pontua.
+                            </li>
+                            <li>Em <code>number</code> com <code>score: true</code>, informe <code>min</code> e
+                                <code>max</code> para normalização em 0–1.
+                                Se <strong>quanto menor for melhor</strong>, use <code>lowerIsBetter: true</code>.</li>
+                            <li>Pesos por pilar em <code>pillarWeights</code> no topo do schema:
+                                <code>{ environment, social, governance }</code>.</li>
                         </ul>
                     </li>
                 </ul>
@@ -755,7 +754,45 @@
                     localStorage.setItem(LS_KEY_DATA, JSON.stringify(arr))
                 }
 
-                const defaultSchema = { sections: [{ key: 'environment', title: 'Ambiental', items: [{ id: 'energia_renovavel', label: '% de energia proveniente de fontes renováveis', type: 'number', min: 0, max: 100, step: 1, placeholder: '0–100', required: false }, { id: 'monitoramento_energia', label: 'Possui monitoramento de consumo de energia?', type: 'yesno', required: true, score: true }, { id: 'agua_consumo', label: 'Consumo mensal de água (m³)', type: 'number', min: 0, step: 0.01 }, { id: 'gestao_residuos', label: 'Gestão de resíduos (coleta seletiva / destinação adequada)', type: 'select', options: ['Não', 'Parcial', 'Sim'], required: true, score: true, scores: { 'Não': 0, 'Parcial': 0.5, 'Sim': 1 } }, { id: 'inventario_ghg', label: 'Inventário de emissões (GEE) realizado', type: 'select', options: ['Não', 'Escopo 1', 'Escopos 1+2', 'Escopos 1+2+3'], score: true, scores: { 'Não': 0, 'Escopo 1': 0.33, 'Escopos 1+2': 0.66, 'Escopos 1+2+3': 1 } }, { id: 'politica_ambiental', label: 'Política ambiental formalizada', type: 'yesno', score: true }] }, { key: 'social', title: 'Social', items: [{ id: 'total_empregados', label: 'Total de colaboradores', type: 'number', min: 0, step: 1 }, { id: 'mulheres_lideranca', label: '% mulheres em liderança', type: 'number', min: 0, max: 100, step: 1 }, { id: 'politica_dei', label: 'Política de Diversidade, Equidade e Inclusão (DEI)', type: 'yesno', score: true }, { id: 'treinamento_horas', label: 'Horas de treinamento/colaborador (últimos 12 meses)', type: 'number', min: 0, step: 0.1 }, { id: 'lgpd_dpo', label: 'Encarregado de dados (LGPD/DPO) nomeado', type: 'yesno', score: true }, { id: 'acidentes', label: 'Acidentes de trabalho (últimos 12 meses)', type: 'number', min: 0, step: 1 }] }, { key: 'governance', title: 'Governança', items: [{ id: 'codigo_etica', label: 'Código de ética publicado', type: 'yesno', score: true }, { id: 'conselho_indep', label: '% de membros independentes no conselho/diretoria', type: 'number', min: 0, max: 100, step: 1 }, { id: 'anticorrupcao', label: 'Treinamento anticorrupção para colaboradores', type: 'yesno', score: true }, { id: 'gestao_riscos', label: 'Processo formal de gestão de riscos', type: 'yesno', score: true }, { id: 'canal_denuncia', label: 'Canal de denúncias ativo', type: 'yesno', score: true }, { id: 'auditoria', label: 'Demonstrações financeiras auditadas', type: 'yesno', score: true }] }] };
+                const defaultSchema = {
+                    pillarWeights: { environment: 1, social: 1, governance: 1 },
+                    sections: [
+                        {
+                            key: 'environment', title: 'Ambiental',
+                            items: [
+                                { id: 'energia_renovavel', label: '% de energia proveniente de fontes renováveis', type: 'number', min: 0, max: 100, step: 1, placeholder: '0–100', required: false, score: true, weight: 1 },
+                                { id: 'monitoramento_energia', label: 'Possui monitoramento de consumo de energia?', type: 'yesno', required: true, score: true, weight: 1 },
+                                { id: 'agua_consumo', label: 'Consumo mensal de água (m³)', type: 'number', min: 0, step: 0.01 },
+                                { id: 'gestao_residuos', label: 'Gestão de resíduos (coleta seletiva / destinação adequada)', type: 'select', options: ['Não', 'Parcial', 'Sim'], required: true, score: true, scores: { 'Não': 0, 'Parcial': 0.5, 'Sim': 1 }, weight: 1 },
+                                { id: 'inventario_ghg', label: 'Inventário de emissões (GEE) realizado', type: 'select', options: ['Não', 'Escopo 1', 'Escopos 1+2', 'Escopos 1+2+3'], score: true, scores: { 'Não': 0, 'Escopo 1': 0.33, 'Escopos 1+2': 0.66, 'Escopos 1+2+3': 1 }, weight: 1 },
+                                { id: 'politica_ambiental', label: 'Política ambiental formalizada', type: 'yesno', score: true, weight: 1 }
+                            ]
+                        },
+                        {
+                            key: 'social', title: 'Social',
+                            items: [
+                                { id: 'total_empregados', label: 'Total de colaboradores', type: 'number', min: 0, step: 1 },
+                                { id: 'mulheres_lideranca', label: '% mulheres em liderança', type: 'number', min: 0, max: 100, step: 1 /* se quiser pontuar: score: true, weight: 1 */ },
+                                { id: 'politica_dei', label: 'Política de Diversidade, Equidade e Inclusão (DEI)', type: 'yesno', score: true, weight: 1 },
+                                { id: 'treinamento_horas', label: 'Horas de treinamento/colaborador (últimos 12 meses)', type: 'number', min: 0, step: 0.1 },
+                                { id: 'lgpd_dpo', label: 'Encarregado de dados (LGPD/DPO) nomeado', type: 'yesno', score: true, weight: 1 },
+                                { id: 'acidentes', label: 'Acidentes de trabalho (últimos 12 meses)', type: 'number', min: 0, step: 1 /* se quiser pontuar como “quanto menor melhor”: score: true, lowerIsBetter: true, max: 50, weight: 1 */ }
+                            ]
+                        },
+                        {
+                            key: 'governance', title: 'Governança',
+                            items: [
+                                { id: 'codigo_etica', label: 'Código de ética publicado', type: 'yesno', score: true, weight: 1 },
+                                { id: 'conselho_indep', label: '% de membros independentes no conselho/diretoria', type: 'number', min: 0, max: 100, step: 1 /* se quiser pontuar: score: true, weight: 1 */ },
+                                { id: 'anticorrupcao', label: 'Treinamento anticorrupção para colaboradores', type: 'yesno', score: true, weight: 1 },
+                                { id: 'gestao_riscos', label: 'Processo formal de gestão de riscos', type: 'yesno', score: true, weight: 1 },
+                                { id: 'canal_denuncia', label: 'Canal de denúncias ativo', type: 'yesno', score: true, weight: 1 },
+                                { id: 'auditoria', label: 'Demonstrações financeiras auditadas', type: 'yesno', score: true, weight: 1 }
+                            ]
+                        }
+                    ]
+                };
+
 
                 function loadSchema() { try { const s = JSON.parse(localStorage.getItem(LS_KEY_SCHEMA) || 'null'); return s && s.sections ? s : defaultSchema } catch (e) { return defaultSchema } }
                 function saveSchema(schema) { localStorage.setItem(LS_KEY_SCHEMA, JSON.stringify(schema)) }
@@ -812,14 +849,104 @@
                     const email = $('#c-email'); if (email && !email._mk) { email.addEventListener('blur', () => email.value = String(email.value || '').trim().toLowerCase()); email._mk = true }
                     attachQuestionMasks()
                 }
+                function normalizeNumberScore(v, min, max, lowerIsBetter) {
+                    if (v == null || isNaN(v) || max == null || min == null || max === min) return null;
+                    const ratio = (Number(v) - Number(min)) / (Number(max) - Number(min));
+                    const clamped = Math.max(0, Math.min(1, ratio));
+                    return lowerIsBetter ? (1 - clamped) : clamped;
+                }
+
 
                 function collectAnswers() {
-                    const base = { company: { name: $('#c-nome').value.trim(), cnpj: $('#c-cnpj').value.trim(), sector: $('#c-setor').value, size: $('#c-porte').value, employees: toNumber($('#c-emp').value), location: $('#c-local').value.trim(), contact: $('#c-contato').value.trim(), email: $('#c-email').value.trim(), phone: $('#c-tel').value.trim() }, consent: $('#consent').checked, answers: {}, scores: { env: null, soc: null, gov: null, total: null }, createdAt: todayISO() };
+                    const base = {
+                        company: {
+                            name: $('#c-nome').value.trim(),
+                            cnpj: $('#c-cnpj').value.trim(),
+                            sector: $('#c-setor').value,
+                            size: $('#c-porte').value,
+                            employees: toNumber($('#c-emp').value),
+                            location: $('#c-local').value.trim(),
+                            contact: $('#c-contato').value.trim(),
+                            email: $('#c-email').value.trim(),
+                            phone: $('#c-tel').value.trim()
+                        },
+                        consent: $('#consent').checked,
+                        answers: {},
+                        scores: { env: null, soc: null, gov: null, total: null },
+                        createdAt: todayISO()
+                    };
+
                     if (!base.company.name || !base.company.sector || !base.company.size) { alert('Preencha os campos obrigatórios de Dados da empresa.'); return null }
                     if (!base.consent) { alert('É necessário concordar com o uso das informações.'); return null }
-                    let envVals = [], socVals = [], govVals = [];
-                    for (const sec of schema.sections) { for (const item of sec.items) { const id = `q_${sec.key}_${item.id || slug(item.label)}`; const el = document.getElementById(id); if (!el) continue; let v = el.value; if (item.type === 'number') v = (v === '' ? null : toNumber(v)); if (item.type === 'yesno' && v === '') v = null; if (item.type === 'scale') v = Number(el.value); base.answers[id] = v; if (item.score) { let score = null; if (item.type === 'yesno') { score = (v === 'Sim') ? 1 : (v === 'Não' ? 0 : null) } else if (item.type === 'scale') { const max = item.max != null ? item.max : 5; const min = item.min != null ? item.min : 1; score = (v == null ? null : (v - min) / (max - min)) } else if (item.type === 'select' && item.scores) { score = v != null && v !== '' && (v in item.scores) ? Number(item.scores[v]) : null } if (score != null) { if (sec.key === 'environment') envVals.push(score); if (sec.key === 'social') socVals.push(score); if (sec.key === 'governance') govVals.push(score) } } } }
-                    const avg = a => a.length ? (a.reduce((x, y) => x + y, 0) / a.length) : null; base.scores.env = avg(envVals); base.scores.soc = avg(socVals); base.scores.gov = avg(govVals); const parts = [base.scores.env, base.scores.soc, base.scores.gov].filter(x => x != null); base.scores.total = parts.length ? (parts.reduce((a, b) => a + b, 0) / parts.length) : null; return base
+
+                    const acc = {
+                        environment: { sum: 0, w: 0 },
+                        social: { sum: 0, w: 0 },
+                        governance: { sum: 0, w: 0 }
+                    };
+
+                    for (const sec of schema.sections) {
+                        for (const item of sec.items) {
+                            const id = `q_${sec.key}_${item.id || slug(item.label)}`;
+                            const el = document.getElementById(id);
+                            if (!el) continue;
+
+                            let v = el.value;
+                            if (item.type === 'number') v = (v === '' ? null : toNumber(v));
+                            if (item.type === 'yesno' && v === '') v = null;
+                            if (item.type === 'scale') v = Number(el.value);
+
+                            base.answers[id] = v;
+
+                            if (item.score) {
+                                let s = null;
+
+                                if (item.type === 'yesno') {
+                                    s = (v === 'Sim') ? 1 : (v === 'Não' ? 0 : null);
+                                } else if (item.type === 'scale') {
+                                    const max = item.max != null ? item.max : 5;
+                                    const min = item.min != null ? item.min : 1;
+                                    s = (v == null ? null : (v - min) / (max - min));
+                                } else if (item.type === 'select' && item.scores) {
+                                    s = (v != null && v !== '' && (v in item.scores)) ? Number(item.scores[v]) : null;
+                                } else if (item.type === 'number') {
+                                    const hasMax = (typeof item.max === 'number');
+                                    const min = (typeof item.min === 'number') ? item.min : 0;
+                                    const max = hasMax ? item.max : null;
+                                    if (max != null) {
+                                        s = normalizeNumberScore(v, min, max, !!item.lowerIsBetter);
+                                    } else {
+                                        // sem max não dá para normalizar; não pontua
+                                        s = null;
+                                    }
+                                }
+
+                                if (s != null && isFinite(s)) {
+                                    const w = (typeof item.weight === 'number' && item.weight > 0) ? item.weight : 1;
+                                    acc[sec.key].sum += s * w;
+                                    acc[sec.key].w += w;
+                                }
+                            }
+                        }
+                    }
+
+                    const env = acc.environment.w ? (acc.environment.sum / acc.environment.w) : null;
+                    const soc = acc.social.w ? (acc.social.sum / acc.social.w) : null;
+                    const gov = acc.governance.w ? (acc.governance.sum / acc.governance.w) : null;
+
+                    base.scores.env = env;
+                    base.scores.soc = soc;
+                    base.scores.gov = gov;
+
+                    // peso por pilar (usa apenas os disponíveis)
+                    const pw = (schema.pillarWeights || { environment: 1, social: 1, governance: 1 });
+                    let totSum = 0, totW = 0;
+                    if (env != null) { totSum += env * (pw.environment || 1); totW += (pw.environment || 1); }
+                    if (soc != null) { totSum += soc * (pw.social || 1); totW += (pw.social || 1); }
+                    if (gov != null) { totSum += gov * (pw.governance || 1); totW += (pw.governance || 1); }
+
+                    base.scores.total = totW ? (totSum / totW) : null;
+                    return base;
                 }
 
                 function renderTable(data) { const tbody = $('#subsTable tbody'); const q = ($('#filter')?.value || '').toLowerCase(); tbody.innerHTML = ''; data.forEach((it, idx) => { const name = it.company?.name || ''; const sector = it.company?.sector || ''; const loc = it.company?.location || ''; const hay = (name + ' ' + sector + ' ' + loc).toLowerCase(); if (q && hay.indexOf(q) === -1) return; const tr = document.createElement('tr'); const tds = [dateBR(it.createdAt), name, sector, (it.company?.size || ''), loc, (it.scores.env != null ? Math.round(it.scores.env * 100) + '%' : '-'), (it.scores.soc != null ? Math.round(it.scores.soc * 100) + '%' : '-'), (it.scores.gov != null ? Math.round(it.scores.gov * 100) + '%' : '-'), (it.scores.total != null ? Math.round(it.scores.total * 100) + '%' : '-')]; tds.forEach(val => { const td = document.createElement('td'); td.textContent = val; tr.appendChild(td) }); const tdAct = document.createElement('td'); const b1 = document.createElement('button'); b1.className = 'secondary'; b1.dataset.act = 'view'; b1.dataset.idx = String(idx); b1.textContent = 'Ver'; const b2 = document.createElement('button'); b2.className = 'ghost'; b2.dataset.act = 'del'; b2.dataset.idx = String(idx); b2.textContent = 'Del'; tdAct.appendChild(b1); tdAct.appendChild(b2); tr.appendChild(tdAct); tbody.appendChild(tr) }) }
