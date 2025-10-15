@@ -2,1252 +2,740 @@
 <html lang="pt-br">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AciaESG • Coleta de Dados</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Firebase (compat) - apenas se desejar sync em nuvem -->
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
-    <link rel="shortcut icon" type="imagex/png" href="icons/icon-512.png">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0b1220">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <style>
-        :root {
-            --bg: #0b1220;
-            --card: #0f172a;
-            --surface: #111827;
-            --muted: #9db1d8;
-            --border: #1f2a44;
-            --text: #e6eefc;
-            --text-muted: #b9c7e6;
-            --primary: #3b82f6;
-            --primary-600: #2563eb;
-            --ok: #22c55e;
-            --warn: #f59e0b;
-            --danger: #ef4444
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Diagnóstico de Maturidade Empresarial • Coleta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase (compat) - opcional -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+  <link rel="shortcut icon" type="image/png" href="icons/icon-512.png" />
+  <meta name="theme-color" content="#0b1220">
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #0f172a;
+      --surface: #111827;
+      --muted: #9db1d8;
+      --border: #1f2a44;
+      --text: #e6eefc;
+      --text-muted: #b9c7e6;
+      --primary: #3b82f6;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444
+    }
 
-        * {
-            box-sizing: border-box
-        }
+    * { box-sizing: border-box }
 
-        #btnExportJSON,
-        label[for="importJson"],
-        #importJson {
-            display: none !important
-        }
+    html, body { height: 100% }
 
-        html,
-        body {
-            height: 100%
-        }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Montserrat, system-ui, Segoe UI, Roboto, Arial, sans-serif
+    }
 
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-            font-family: Montserrat, system-ui, Segoe UI, Roboto, Arial, sans-serif
-        }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px }
 
-        .wrap {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 24px
-        }
+    header { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 16px }
 
-        header {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px
-        }
+    .title { display: flex; gap: 12px; align-items: center }
+    .title h1 { font-size: 20px; margin: 0; font-weight: 800; letter-spacing: .2px }
+    .title small { color: var(--text-muted) }
 
-        .title {
-            display: flex;
-            gap: 12px;
-            align-items: center
-        }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap }
 
-        .title h1 {
-            font-size: 20px;
-            margin: 0;
-            font-weight: 800;
-            letter-spacing: .2px
-        }
+    button, .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 600;
+      cursor: pointer
+    }
+    button.secondary { background: #1f2a44 }
+    button.ghost { background: transparent; border: 1px solid var(--border) }
+    button:disabled { opacity: .6; cursor: not-allowed }
 
-        .title small {
-            color: var(--text-muted)
-        }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 18px }
+    .tab { padding: 8px 12px; border: 1px solid var(--border); border-radius: 999px; color: var(--text); cursor: pointer }
+    .tab.active { background: var(--primary); border-color: var(--primary) }
 
-        .toolbar {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap
-        }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px }
 
-        button,
-        .btn {
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            border-radius: 12px;
-            padding: 10px 14px;
-            font-weight: 600;
-            cursor: pointer
-        }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px }
+    .col-12 { grid-column: span 12 }
+    .col-6 { grid-column: span 12 }
+    .col-4 { grid-column: span 12 }
+    @media(min-width:720px){ .col-6 { grid-column: span 6 } .col-4 { grid-column: span 4 } }
 
-        button.secondary {
-            background: #1f2a44
-        }
+    label { display: block; font-weight: 600; margin: 8px 0 6px }
+    input, select, textarea {
+      width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text)
+    }
+    input[type="checkbox"] { width: auto; display: inline-block }
 
-        button.ghost {
-            background: transparent;
-            border: 1px solid var(--border)
-        }
+    .row { display: flex; gap: 10px; flex-wrap: wrap }
+    .right { justify-content: flex-end }
 
-        button:disabled {
-            opacity: .6;
-            cursor: not-allowed
-        }
+    .hint { color: var(--text-muted); font-size: .9em }
+    .badge { display: inline-flex; align-items: center; gap: 6px; background: #1f2a44; border: 1px solid var(--border); padding: 6px 10px; border-radius: 999px; color: var(--text-muted) }
 
-        .tabs {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin: 10px 0 18px
-        }
+    .section-title { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 8px }
+    .section-title h3 { margin: 0; font-size: 16px }
 
-        .tab {
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            color: var(--text);
-            cursor: pointer
-        }
+    table { width: 100%; border-collapse: collapse }
+    th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: left }
+    tr:hover td { background: #0d1528 }
 
-        .tab.active {
-            background: var(--primary);
-            border-color: var(--primary)
-        }
+    .progress { height: 10px; background: #0b1630; border-radius: 999px; overflow: hidden; border: 1px solid var(--border) }
+    .progress>span { display: block; height: 100%; background: var(--ok) }
 
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 16px
-        }
+    .pill { border: 1px solid var(--border); padding: 6px 10px; border-radius: 999px }
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            gap: 12px
-        }
+    .footer { margin-top: 18px; color: var(--text-muted); font-size: .9em }
 
-        .col-12 {
-            grid-column: span 12
-        }
+    .kpi { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px }
+    .kpi .box { grid-column: span 12; background: #0d162a; border: 1px solid var(--border); border-radius: 14px; padding: 14px }
+    .kpi .value { font-size: 24px; font-weight: 800 }
+    @media(min-width:720px){ .kpi .box { grid-column: span 4 } }
 
-        .col-6 {
-            grid-column: span 12
-        }
+    .json-editor { min-height: 220px; font-family: ui-monospace, SFMono, Menlo, Consolas, monospace }
 
-        .col-4 {
-            grid-column: span 12
-        }
-
-        @media(min-width:720px) {
-            .col-6 {
-                grid-column: span 6
-            }
-
-            .col-4 {
-                grid-column: span 4
-            }
-        }
-
-        label {
-            display: block;
-            font-weight: 600;
-            margin: 8px 0 6px
-        }
-
-        input,
-        select,
-        textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            color: var(--text)
-        }
-
-        input[type="checkbox"] {
-            width: auto;
-            display: inline-block
-        }
-
-        .row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap
-        }
-
-        .right {
-            justify-content: flex-end
-        }
-
-        .hint {
-            color: var(--text-muted);
-            font-size: .9em
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #1f2a44;
-            border: 1px solid var(--border);
-            padding: 6px 10px;
-            border-radius: 999px;
-            color: var(--text-muted)
-        }
-
-        .section-title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 16px 0 8px
-        }
-
-        .section-title h3 {
-            margin: 0;
-            font-size: 16px
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse
-        }
-
-        th,
-        td {
-            padding: 10px 8px;
-            border-bottom: 1px solid var(--border);
-            text-align: left
-        }
-
-        tr:hover td {
-            background: #0d1528
-        }
-
-        .progress {
-            height: 10px;
-            background: #0b1630;
-            border-radius: 999px;
-            overflow: hidden;
-            border: 1px solid var(--border)
-        }
-
-        .progress>span {
-            display: block;
-            height: 100%;
-            background: var(--ok)
-        }
-
-        .pill {
-            border: 1px solid var(--border);
-            padding: 6px 10px;
-            border-radius: 999px
-        }
-
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0
-        }
-
-        .footer {
-            margin-top: 18px;
-            color: var(--text-muted);
-            font-size: .9em
-        }
-
-        .kpi {
-            display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            gap: 12px
-        }
-
-        .kpi .box {
-            grid-column: span 12;
-            background: #0d162a;
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 14px
-        }
-
-        .kpi .value {
-            font-size: 24px;
-            font-weight: 800
-        }
-
-        @media(min-width:720px) {
-            .kpi .box {
-                grid-column: span 4
-            }
-        }
-
-        .json-editor {
-            min-height: 220px;
-            font-family: ui-monospace, SFMono, Menlo, Consolas, monospace
-        }
-
-        .help {
-            background: #0c1731;
-            border: 1px dashed var(--border);
-            border-radius: 12px;
-            padding: 10px
-        }
-
-        .modal {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 0, 0, .55);
-            z-index: 1000;
-            padding: 20px
-        }
-
-        .modal[hidden] {
-            display: none
-        }
-
-        .modal .panel {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
-            width: min(900px, 100%);
-            max-height: 85vh;
-            overflow: auto;
-            padding: 16px
-        }
-
-        .modal .modal-body table {
-            width: 100%;
-            border-collapse: collapse
-        }
-
-        .modal .modal-body th,
-        .modal .modal-body td {
-            padding: 8px;
-            border-bottom: 1px solid var(--border);
-            text-align: left
-        }
-
-        .chips {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin: 8px 0
-        }
-
-        .chip {
-            background: #0d162a;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            padding: 6px 10px
-        }
-    </style>
+    .modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); z-index: 1000; padding: 20px }
+    .modal[hidden] { display: none }
+    .modal .panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.4); width: min(900px, 100%); max-height: 85vh; overflow: auto; padding: 16px }
+  </style>
 </head>
 
 <body>
-    <div class="wrap">
-        <header>
-            <div class="title">
-                <!-- <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
-                    <path d="M3 3v18h18" />
-                    <path d="M19 5l-7 7-4-4-3 3" />
-                </svg> -->
-                <img src="logoacianexus_wbg.png" alt="" width="100px" height="50px">
-                <div>
-                    <h1>AciaESG • Coleta de Dados</h1>
-                    <small id="subCount">0 respostas</small>
-                </div>
-            </div>
-            <div class="toolbar">
-                <button class="secondary" id="btnExportXLSX" title="Exportar para Excel">Exportar XLSX</button>
-                <button class="secondary" id="btnExportCSV" title="Exportar para CSV">Exportar CSV</button>
-                <label class="btn ghost" for="importJson">Importar JSON</label>
-                <input id="importJson" type="file" accept="application/json" class="sr-only" />
-                <button class="ghost" id="btnExportJSON" title="Exportar dados brutos">Exportar JSON</button>
-            </div>
-        </header>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <img src="logoacianexus_wbg.png" alt="Logo" width="100" height="50" />
+        <div>
+          <h1>Diagnóstico de Maturidade Empresarial</h1>
+          <small id="subCount">0 respostas</small>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="secondary" id="btnExportXLSX" title="Exportar para Excel">Exportar XLSX</button>
+      </div>
+    </header>
 
-        <nav class="tabs" role="tablist" aria-label="Navegação principal">
-            <button class="tab active" data-tab="new">Nova resposta</button>
-            <button class="tab" data-tab="submissions">Respostas</button>
-            <button class="tab" data-tab="questions">Perguntas</button>
-            <button class="tab" data-tab="dashboard">Dashboard</button>
-        </nav>
+    <nav class="tabs" role="tablist" aria-label="Navegação principal">
+      <button class="tab active" data-tab="new">Nova resposta</button>
+      <button class="tab" data-tab="submissions">Respostas</button>
+      <button class="tab" data-tab="questions">Perguntas</button>
+      <button class="tab" data-tab="dashboard">Dashboard</button>
+    </nav>
 
-        <section id="tab-new" class="card" role="tabpanel">
-            <form id="esgForm" novalidate>
-                <div class="section-title">
-                    <h3>Dados da empresa</h3><span class="badge">Campos marcados com * são obrigatórios</span>
-                </div>
-                <div class="grid">
-                    <div class="col-6"><label for="c-nome">Razão social *</label><input id="c-nome" name="company_name"
-                            required placeholder="Ex.: ACME Indústria Ltda." /></div>
-                    <div class="col-6"><label for="c-cnpj">CNPJ</label><input id="c-cnpj" name="cnpj"
-                            placeholder="00.000.000/0000-00" /></div>
-                    <div class="col-6"><label for="c-setor">Setor *</label><select id="c-setor" name="sector" required>
-                            <option value="">Selecione…</option>
-                            <option>Indústria</option>
-                            <option>Comércio</option>
-                            <option>Serviços</option>
-                            <option>Agronegócio</option>
-                            <option>Tecnologia</option>
-                            <option>Outro</option>
-                        </select></div>
-                    <div class="col-6"><label for="c-porte">Porte *</label><select id="c-porte" name="size" required>
-                            <option value="">Selecione…</option>
-                            <option>MEI</option>
-                            <option>Micro</option>
-                            <option>Pequena</option>
-                            <option>Média</option>
-                            <option>Grande</option>
-                        </select></div>
-                    <div class="col-6"><label for="c-emp">Número de colaboradores</label><input id="c-emp"
-                            name="employees" type="number" min="0" step="1" placeholder="Ex.: 42" /></div>
-                    <div class="col-6"><label for="c-local">Cidade/UF</label><input id="c-local" name="location"
-                            placeholder="Ex.: Americana/SP" /></div>
-                    <div class="col-6"><label for="c-contato">Pessoa de contato</label><input id="c-contato"
-                            name="contact" placeholder="Nome do responsável" /></div>
-                    <div class="col-6"><label for="c-email">E-mail</label><input id="c-email" name="email" type="email"
-                            placeholder="nome@empresa.com" /></div>
-                    <div class="col-6"><label for="c-tel">Telefone</label><input id="c-tel" name="phone"
-                            placeholder="(00) 00000-0000" /></div>
-                </div>
-
-                <div class="section-title">
-                    <h3>Perguntas AciaESG</h3><span class="badge" id="qCount">0 itens</span>
-                </div>
-                <div id="dynamicSections"></div>
-
-                <div class="row" style="margin-top:12px;align-items:center">
-                    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="consent"
-                            required /><span>Autorizo o uso dessas informações para fins de diagnóstico
-                            AciaESG.*</span></label>
-                    <span class="hint">* Os dados podem ser agregados de forma anônima para indicadores.</span>
-                </div>
-                <div class="row right" style="margin-top:16px"><button type="button" class="ghost"
-                        id="btnClear">Limpar</button><button type="submit" id="btnSave">Salvar resposta</button></div>
-            </form>
-        </section>
-
-        <section id="tab-submissions" class="card" role="tabpanel" hidden>
-            <div class="row" style="justify-content:space-between;align-items:center"><input id="filter"
-                    placeholder="Filtrar por empresa, setor, cidade…" style="max-width:320px">
-                <div class="row"><button class="secondary" id="btnDeleteAll">Apagar tudo</button></div>
-            </div>
-            <div style="overflow:auto;margin-top:10px">
-                <table id="subsTable" aria-label="Tabela de submissões">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Empresa</th>
-                            <th>Setor</th>
-                            <th>Porte</th>
-                            <th>Cidade/UF</th>
-                            <th>Score E</th>
-                            <th>Score S</th>
-                            <th>Score G</th>
-                            <th>Total</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </section>
-
-        <section id="tab-questions" class="card" role="tabpanel" hidden>
-            <div class="help" style="margin-bottom:12px">
-                <strong>Como usar:</strong>
-                <ul>
-                    <li>No schema, você pode usar:
-                        <ul>
-                            <li><code>weight</code> (número &gt; 0) para dar peso maior/menor a uma pergunta que pontua.
-                            </li>
-                            <li>Em <code>number</code> com <code>score: true</code>, informe <code>min</code> e
-                                <code>max</code> para normalização em 0–1.
-                                Se <strong>quanto menor for melhor</strong>, use <code>lowerIsBetter: true</code>.</li>
-                            <li>Pesos por pilar em <code>pillarWeights</code> no topo do schema:
-                                <code>{ environment, social, governance }</code>.</li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-            <textarea id="schemaEditor" class="json-editor" spellcheck="false"></textarea>
-            <div class="row right" style="margin-top:10px"><button class="ghost" id="btnSchemaReset">Restaurar
-                    padrão</button><button id="btnSchemaSave">Salvar perguntas</button></div>
-        </section>
-
-        <section id="tab-dashboard" class="card" role="tabpanel" hidden>
-            <div class="kpi" id="kpiArea">
-                <div class="box">
-                    <div class="hint">Respostas totais</div>
-                    <div class="value" id="kpiCount">0</div>
-                </div>
-                <div class="box">
-                    <div class="hint">Média Score Ambiental</div>
-                    <div class="value" id="kpiE">0%</div>
-                    <div class="progress"><span id="barE" style="width:0%"></span></div>
-                </div>
-                <div class="box">
-                    <div class="hint">Média Score Social</div>
-                    <div class="value" id="kpiS">0%</div>
-                    <div class="progress"><span id="barS" style="width:0%"></span></div>
-                </div>
-                <div class="box">
-                    <div class="hint">Média Score Governança</div>
-                    <div class="value" id="kpiG">0%</div>
-                    <div class="progress"><span id="barG" style="width:0%"></span></div>
-                </div>
-                <div class="box">
-                    <div class="hint">Score Total Médio</div>
-                    <div class="value" id="kpiTotal">0%</div>
-                    <div class="progress"><span id="barT" style="width:0%"></span></div>
-                </div>
-            </div>
-
-            <div class="grid" id="dashExtra" style="margin-top:12px">
-                <div class="col-6">
-                    <div class="card">
-                        <div class="section-title">
-                            <h3>Visão geral</h3>
-                        </div>
-                        <div class="row" style="gap:8px;flex-wrap:wrap"><span class="pill">Últimos 30 dias: <strong
-                                    id="kpiMonth">0</strong></span><span class="pill">Consentimento: <strong
-                                    id="kpiConsent">0%</strong></span><span class="pill">Empresas únicas: <strong
-                                    id="kpiUnique">0</strong></span><span class="pill">Média colaboradores: <strong
-                                    id="kpiEmpAvg">0</strong></span></div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="card">
-                        <div class="section-title">
-                            <h3>Adoção (Sim) por item</h3>
-                        </div>
-                        <div id="listYesNo" class="hint">Sem dados.</div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="card">
-                        <div class="section-title">
-                            <h3>Setores com mais respostas</h3>
-                        </div>
-                        <div id="listSectors" class="hint">Sem dados.</div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="card">
-                        <div class="section-title">
-                            <h3>Distribuição por porte</h3>
-                        </div>
-                        <div id="listSizes" class="hint">Sem dados.</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid" id="dashCharts" style="margin-top:12px">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="section-title">
-                            <h3>Tendência E/S/G (mensal)</h3>
-                        </div><canvas id="chartTrend" height="120"></canvas>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="card">
-                        <div class="section-title">
-                            <h3>Média por setor</h3>
-                        </div><canvas id="chartSector" height="160"></canvas>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="card">
-                        <div class="section-title">
-                            <h3>Distribuição por porte</h3>
-                        </div><canvas id="chartSize" height="160"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid" id="dashQuality" style="margin-top:12px">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="section-title">
-                            <h3>Qualidade dos dados</h3>
-                        </div>
-                        <div class="grid">
-                            <div class="col-6">
-                                <div class="row" style="gap:8px;flex-wrap:wrap">
-                                    <span class="pill">Registros: <strong id="qReg">0</strong></span>
-                                    <span class="pill">Completos (críticos): <strong id="qComplete">0%</strong></span>
-                                    <span class="pill">Com consentimento: <strong id="qConsent">0%</strong></span>
-                                </div>
-                                <div id="qIssues" class="hint" style="margin-top:10px">Sem problemas.</div>
-                            </div>
-                            <div class="col-6">
-                                <div style="margin-bottom:8px">E-mail válido <small id="qPctEmail"
-                                        class="hint">0%</small>
-                                    <div class="progress"><span id="qBarEmail" style="width:0%"></span></div>
-                                </div>
-                                <div style="margin-bottom:8px">CNPJ válido <small id="qPctCNPJ" class="hint">0%</small>
-                                    <div class="progress"><span id="qBarCNPJ" style="width:0%"></span></div>
-                                </div>
-                                <div style="margin-bottom:8px">Telefone válido <small id="qPctPhone"
-                                        class="hint">0%</small>
-                                    <div class="progress"><span id="qBarPhone" style="width:0%"></span></div>
-                                </div>
-                                <div style="margin-bottom:8px">Cidade/UF preenchido <small id="qPctLoc"
-                                        class="hint">0%</small>
-                                    <div class="progress"><span id="qBarLoc" style="width:0%"></span></div>
-                                </div>
-                                <div style="margin-bottom:8px">Colaboradores informados <small id="qPctEmp"
-                                        class="hint">0%</small>
-                                    <div class="progress"><span id="qBarEmp" style="width:0%"></span></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <div id="modal" class="modal" hidden>
-            <div class="panel">
-                <div class="section-title">
-                    <h3 id="modalTitle">Detalhes da resposta</h3>
-                    <div class="row" style="gap:8px">
-                        <button class="ghost" id="btnPrint">Imprimir</button>
-                        <button class="secondary" id="modalClose" aria-label="Fechar">Fechar</button>
-                    </div>
-                </div>
-                <div id="modalBody" class="modal-body"></div>
-            </div>
+    <section id="tab-new" class="card" role="tabpanel">
+      <form id="form" novalidate>
+        <div class="section-title">
+          <h3>Dados da empresa</h3>
+          <span class="badge">Campos marcados com * são obrigatórios</span>
+        </div>
+        <div class="grid">
+          <div class="col-6"><label for="c-nome">Razão social *</label><input id="c-nome" required placeholder="Ex.: ACME Indústria Ltda." /></div>
+          <div class="col-6"><label for="c-cnpj">CNPJ</label><input id="c-cnpj" placeholder="00.000.000/0000-00" /></div>
+          <div class="col-6"><label for="c-setor">Setor *</label><select id="c-setor" required><option value="">Selecione…</option><option>Indústria</option><option>Comércio</option><option>Serviços</option><option>Agronegócio</option><option>Tecnologia</option><option>Outro</option></select></div>
+          <div class="col-6"><label for="c-porte">Porte *</label><select id="c-porte" required><option value="">Selecione…</option><option>MEI</option><option>Micro</option><option>Pequena</option><option>Média</option><option>Grande</option></select></div>
+          <div class="col-6"><label for="c-emp">Número de colaboradores</label><input id="c-emp" type="number" min="0" step="1" placeholder="Ex.: 42" /></div>
+          <div class="col-6"><label for="c-local">Cidade/UF</label><input id="c-local" placeholder="Ex.: Americana/SP" /></div>
+          <div class="col-6"><label for="c-contato">Pessoa de contato</label><input id="c-contato" placeholder="Nome do responsável" /></div>
+          <div class="col-6"><label for="c-email">E-mail</label><input id="c-email" type="email" placeholder="nome@empresa.com" /></div>
+          <div class="col-6"><label for="c-tel">Telefone</label><input id="c-tel" placeholder="(00) 00000-0000" /></div>
         </div>
 
-        <!-- Bloco de integração Firebase: preencha firebaseConfig para ativar sync -->
-        <script>
-            (function () {
-                const firebaseConfig = {
-                    apiKey: "AIzaSyBtpusAzifbsqD7z9nIZA7wSM7sHnBEoVQ",
-                    authDomain: "esgacia-a34af.firebaseapp.com",
-                    projectId: "esgacia-a34af",
-                    storageBucket: "esgacia-a34af.firebasestorage.app",
-                    messagingSenderId: "1046570007825",
-                    appId: "1:1046570007825:web:ccd452316de7d3d88a20b0",
-                    measurementId: "G-LX6RZ2KEBP"
-                };
-                const hasConfig = !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId);
-                if (!window.firebase || !hasConfig) { window.firebaseApi = null; return; }
-                try {
-                    const app = firebase.initializeApp(firebaseConfig);
-                    const db = firebase.firestore();
-                    db.enablePersistence({ synchronizeTabs: true }).catch(() => { });
-                    const TENANT_ID = "default";
-                    function coll() { return db.collection('tenants').doc(TENANT_ID).collection('responses'); }
-                    async function saveRecord(rec) {
-                        rec._createdAtServer = firebase.firestore.FieldValue.serverTimestamp();
-                        const ref = await coll().add(rec);
-                        console.log('✔ Firestore: salvo', ref.id);
-                        return ref.id;
-                    }
-                    function subscribe(onChange) {
-                        coll().orderBy('createdAt', 'desc').onSnapshot(
-                            snap => {
-                                const arr = []; snap.forEach(doc => { arr.push({ _id: doc.id, ...doc.data() }); });
-                                if (typeof onChange === 'function') onChange(arr);
-                            },
-                            err => { console.warn('Snapshot Firestore falhou, mantendo modo local:', err && (err.code || err.message) || err); }
-                        );
-                    }
-                    async function deleteRecord(id) { await coll().doc(id).delete(); }
-                    async function deleteAll() { const snap = await coll().get(); const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit(); }
-                    window.firebaseApi = { saveRecord, subscribe, deleteRecord, deleteAll };
-                } catch (e) { console.error(e); window.firebaseApi = null; }
-            })();
-        </script>
+        <div class="section-title">
+          <h3>Dimensões de Maturidade (1–5)</h3>
+          <span class="badge" id="qCount">0 itens</span>
+        </div>
+        <div id="dynamicSections"></div>
 
-        <script>
-            (function () {
-                'use strict';
-                const LS_KEY_DATA = 'esg_submissions_v1';
-                const LS_KEY_SCHEMA = 'esg_schema_v1';
-                const USE_LOCAL_DATA = !window.firebaseApi;
-                const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1427391813643407523/-z_NaHaGpMg0EIHwtpyFqkiBtpSV06OaJnxFf2WZEt_LdMK9F2skDNO2p1uzMUYOtoje";
-                async function postDiscord(rec, id) {
-                    if (!DISCORD_WEBHOOK) return;
-                    const pct = n => (n == null ? '—' : (Math.round(n * 100) + '%'));
-                    const color = (function () {
-                        const t = rec && rec.scores ? rec.scores.total : null;
-                        if (t == null) return 0x3b82f6;
-                        const p = Math.round(t * 100);
-                        if (p >= 80) return 0x22c55e;
-                        if (p >= 50) return 0xf59e0b;
-                        return 0xef4444;
-                    })();
-                    const embed = {
-                        title: "Nova resposta AciaESG",
-                        description: rec.company && rec.company.name ? `**${rec.company.name}**` : "",
-                        color: color,
-                        timestamp: new Date().toISOString(),
-                        fields: [
-                            { name: "Setor", value: (rec.company && rec.company.sector) || "—", inline: true },
-                            { name: "Porte", value: (rec.company && rec.company.size) || "—", inline: true },
-                            { name: "Total", value: pct(rec.scores && rec.scores.total), inline: true },
-                            { name: "E", value: pct(rec.scores && rec.scores.env), inline: true },
-                            { name: "S", value: pct(rec.scores && rec.scores.soc), inline: true },
-                            { name: "G", value: pct(rec.scores && rec.scores.gov), inline: true },
-                            { name: "Cidade/UF", value: (rec.company && rec.company.location) || "—", inline: true },
-                            { name: "Contato", value: (rec.company && rec.company.contact) || "—", inline: true },
-                            { name: "E-mail", value: (rec.company && rec.company.email) || "—", inline: true }
-                        ],
-                        footer: { text: "AciaESG • Coleta de Dados" }
-                    };
-                    const payload = { content: "", embeds: [embed] };
-                    try {
-                        const res = await fetch(DISCORD_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                        if (!res.ok) console.warn('Discord webhook falhou', res.status);
-                    } catch (err) { console.warn('Discord webhook erro', err); }
-                }
+        <div class="row" style="margin-top:12px;align-items:center">
+          <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="consent" required /><span>Autorizo o uso dessas informações para fins de diagnóstico.*</span></label>
+          <span class="hint">* Dados podem ser agregados de forma anônima.</span>
+        </div>
+        <div class="row right" style="margin-top:16px">
+          <button type="button" class="ghost" id="btnClear">Limpar</button>
+          <button type="submit" id="btnSave">Salvar resposta</button>
+        </div>
+      </form>
+    </section>
 
-                function loadData() {
-                    if (!USE_LOCAL_DATA) return [];
-                    try { return JSON.parse(localStorage.getItem(LS_KEY_DATA) || '[]') } catch (e) { return [] }
-                }
-                function saveData(arr) {
-                    if (!USE_LOCAL_DATA) return;
-                    localStorage.setItem(LS_KEY_DATA, JSON.stringify(arr))
-                }
+    <section id="tab-submissions" class="card" role="tabpanel" hidden>
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <input id="filter" placeholder="Filtrar por empresa, setor, cidade…" style="max-width:320px">
+        <div class="row"><button class="secondary" id="btnDeleteAll">Apagar tudo</button></div>
+      </div>
+      <div style="overflow:auto;margin-top:10px">
+        <table aria-label="Tabela de submissões">
+          <thead id="subsHead"></thead>
+          <tbody id="subsBody"></tbody>
+        </table>
+      </div>
+    </section>
 
-                const defaultSchema = {
-                    pillarWeights: { environment: 1, social: 1, governance: 1 },
-                    sections: [
-                        {
-                            key: 'environment', title: 'Ambiental',
-                            items: [
-                                { id: 'energia_renovavel', label: '% de energia proveniente de fontes renováveis', type: 'number', min: 0, max: 100, step: 1, placeholder: '0–100', required: false, score: true, weight: 1 },
-                                { id: 'monitoramento_energia', label: 'Possui monitoramento de consumo de energia?', type: 'yesno', required: true, score: true, weight: 1 },
-                                { id: 'agua_consumo', label: 'Consumo mensal de água (m³)', type: 'number', min: 0, step: 0.01 },
-                                { id: 'gestao_residuos', label: 'Gestão de resíduos (coleta seletiva / destinação adequada)', type: 'select', options: ['Não', 'Parcial', 'Sim'], required: true, score: true, scores: { 'Não': 0, 'Parcial': 0.5, 'Sim': 1 }, weight: 1 },
-                                { id: 'inventario_ghg', label: 'Inventário de emissões (GEE) realizado', type: 'select', options: ['Não', 'Escopo 1', 'Escopos 1+2', 'Escopos 1+2+3'], score: true, scores: { 'Não': 0, 'Escopo 1': 0.33, 'Escopos 1+2': 0.66, 'Escopos 1+2+3': 1 }, weight: 1 },
-                                { id: 'politica_ambiental', label: 'Política ambiental formalizada', type: 'yesno', score: true, weight: 1 }
-                            ]
-                        },
-                        {
-                            key: 'social', title: 'Social',
-                            items: [
-                                { id: 'total_empregados', label: 'Total de colaboradores', type: 'number', min: 0, step: 1 },
-                                { id: 'mulheres_lideranca', label: '% mulheres em liderança', type: 'number', min: 0, max: 100, step: 1 /* se quiser pontuar: score: true, weight: 1 */ },
-                                { id: 'politica_dei', label: 'Política de Diversidade, Equidade e Inclusão (DEI)', type: 'yesno', score: true, weight: 1 },
-                                { id: 'treinamento_horas', label: 'Horas de treinamento/colaborador (últimos 12 meses)', type: 'number', min: 0, step: 0.1 },
-                                { id: 'lgpd_dpo', label: 'Encarregado de dados (LGPD/DPO) nomeado', type: 'yesno', score: true, weight: 1 },
-                                { id: 'acidentes', label: 'Acidentes de trabalho (últimos 12 meses)', type: 'number', min: 0, step: 1 /* se quiser pontuar como “quanto menor melhor”: score: true, lowerIsBetter: true, max: 50, weight: 1 */ }
-                            ]
-                        },
-                        {
-                            key: 'governance', title: 'Governança',
-                            items: [
-                                { id: 'codigo_etica', label: 'Código de ética publicado', type: 'yesno', score: true, weight: 1 },
-                                { id: 'conselho_indep', label: '% de membros independentes no conselho/diretoria', type: 'number', min: 0, max: 100, step: 1 /* se quiser pontuar: score: true, weight: 1 */ },
-                                { id: 'anticorrupcao', label: 'Treinamento anticorrupção para colaboradores', type: 'yesno', score: true, weight: 1 },
-                                { id: 'gestao_riscos', label: 'Processo formal de gestão de riscos', type: 'yesno', score: true, weight: 1 },
-                                { id: 'canal_denuncia', label: 'Canal de denúncias ativo', type: 'yesno', score: true, weight: 1 },
-                                { id: 'auditoria', label: 'Demonstrações financeiras auditadas', type: 'yesno', score: true, weight: 1 }
-                            ]
-                        }
-                    ]
-                };
+    <section id="tab-questions" class="card" role="tabpanel" hidden>
+      <div class="hint" style="margin-bottom:8px">
+        Escala de interpretação: 1 = Inexistente; 2 = Inicial; 3 = Em desenvolvimento; 4 = Consolidado; 5 = Avançado e sustentável.
+      </div>
+      <textarea id="schemaEditor" class="json-editor" spellcheck="false"></textarea>
+      <div class="row right" style="margin-top:10px">
+        <button class="ghost" id="btnSchemaReset">Restaurar padrão</button>
+        <button id="btnSchemaSave">Salvar perguntas</button>
+      </div>
+    </section>
 
+    <section id="tab-dashboard" class="card" role="tabpanel" hidden>
+      <div class="kpi" id="kpiArea"></div>
 
-                function loadSchema() { try { const s = JSON.parse(localStorage.getItem(LS_KEY_SCHEMA) || 'null'); return s && s.sections ? s : defaultSchema } catch (e) { return defaultSchema } }
-                function saveSchema(schema) { localStorage.setItem(LS_KEY_SCHEMA, JSON.stringify(schema)) }
+      <div class="grid" id="dashExtra" style="margin-top:12px">
+        <div class="col-6">
+          <div class="card">
+            <div class="section-title"><h3>Visão geral</h3></div>
+            <div class="row" style="gap:8px;flex-wrap:wrap">
+              <span class="pill">Últimos 30 dias: <strong id="kpiMonth">0</strong></span>
+              <span class="pill">Consentimento: <strong id="kpiConsent">0%</strong></span>
+              <span class="pill">Empresas únicas: <strong id="kpiUnique">0</strong></span>
+              <span class="pill">Média colaboradores: <strong id="kpiEmpAvg">0</strong></span>
+            </div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="card">
+            <div class="section-title"><h3>Adoção (Sim) por item</h3></div>
+            <div id="listYesNo" class="hint">Sem dados.</div>
+          </div>
+        </div>
+      </div>
 
-                const $ = s => document.querySelector(s); const $$ = s => Array.from(document.querySelectorAll(s));
-                function toNumber(v) { if (v == null || v === '') return null; return Number(String(v).replace(',', '.')) }
-                function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') }
-                function todayISO() { return new Date().toISOString() }
-                function dateBR(iso) { try { return new Date(iso).toLocaleString('pt-BR') } catch (e) { return iso } }
+      <div class="grid" id="dashCharts" style="margin-top:12px">
+        <div class="col-12">
+          <div class="card">
+            <div class="section-title"><h3>Tendência por dimensão (mensal)</h3></div>
+            <canvas id="chartTrend" height="120"></canvas>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="card">
+            <div class="section-title"><h3>Média por setor (Total)</h3></div>
+            <canvas id="chartSector" height="160"></canvas>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="card">
+            <div class="section-title"><h3>Distribuição por porte</h3></div>
+            <canvas id="chartSize" height="160"></canvas>
+          </div>
+        </div>
+      </div>
 
-                let schema = loadSchema();
-                let DATA = loadData();
-                let CHARTS = { trend: null, sector: null, size: null };
+      <div class="grid" id="dashQuality" style="margin-top:12px">
+        <div class="col-12">
+          <div class="card">
+            <div class="section-title"><h3>Qualidade dos dados</h3></div>
+            <div class="grid">
+              <div class="col-6">
+                <div class="row" style="gap:8px;flex-wrap:wrap">
+                  <span class="pill">Registros: <strong id="qReg">0</strong></span>
+                  <span class="pill">Completos (críticos): <strong id="qComplete">0%</strong></span>
+                  <span class="pill">Com consentimento: <strong id="qConsent">0%</strong></span>
+                </div>
+                <div id="qIssues" class="hint" style="margin-top:10px">Sem problemas.</div>
+              </div>
+              <div class="col-6">
+                <div style="margin-bottom:8px">E-mail válido <small id="qPctEmail" class="hint">0%</small><div class="progress"><span id="qBarEmail" style="width:0%"></span></div></div>
+                <div style="margin-bottom:8px">CNPJ válido <small id="qPctCNPJ" class="hint">0%</small><div class="progress"><span id="qBarCNPJ" style="width:0%"></span></div></div>
+                <div style="margin-bottom:8px">Telefone válido <small id="qPctPhone" class="hint">0%</small><div class="progress"><span id="qBarPhone" style="width:0%"></span></div></div>
+                <div style="margin-bottom:8px">Cidade/UF preenchido <small id="qPctLoc" class="hint">0%</small><div class="progress"><span id="qBarLoc" style="width:0%"></span></div></div>
+                <div style="margin-bottom:8px">Colaboradores informados <small id="qPctEmp" class="hint">0%</small><div class="progress"><span id="qBarEmp" style="width:0%"></span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-                function renderForm() {
-                    const cont = $('#dynamicSections'); cont.innerHTML = ''; let qCount = 0;
-                    schema.sections.forEach(sec => {
-                        const box = document.createElement('div'); box.className = 'card'; box.style.marginBottom = '10px';
-                        const h = document.createElement('div'); h.className = 'section-title';
-                        const h3 = document.createElement('h3'); h3.textContent = sec.title; const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = (sec.items.length || 0) + ' itens'; h.appendChild(h3); h.appendChild(badge); box.appendChild(h);
-                        const grid = document.createElement('div'); grid.className = 'grid';
-                        sec.items.forEach(item => {
-                            qCount++; const col = document.createElement('div'); col.className = 'col-6';
-                            const id = `q_${sec.key}_${item.id || slug(item.label)}`; const req = item.required ? ' *' : '';
-                            const label = document.createElement('label'); label.setAttribute('for', id); label.textContent = (item.label || '') + req; let input;
-                            if (item.type === 'text') { input = document.createElement('input'); input.type = 'text'; if (item.placeholder) input.placeholder = item.placeholder }
-                            else if (item.type === 'number') { input = document.createElement('input'); input.type = 'number'; if (item.min != null) input.min = item.min; if (item.max != null) input.max = item.max; input.step = item.step != null ? item.step : '0.01'; if (item.placeholder) input.placeholder = item.placeholder }
-                            else if (item.type === 'date') { input = document.createElement('input'); input.type = 'date' }
-                            else if (item.type === 'yesno') { input = document.createElement('select'); const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Selecione…'; input.appendChild(o0);['Sim', 'Não'].forEach(v => { const op = document.createElement('option'); op.value = v; op.textContent = v; input.appendChild(op) }) }
-                            else if (item.type === 'select') { input = document.createElement('select'); const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Selecione…'; input.appendChild(o0); (item.options || []).forEach(v => { const op = document.createElement('option'); op.value = v; op.textContent = v; input.appendChild(op) }) }
-                            else if (item.type === 'scale') {
-                                input = document.createElement('input'); input.type = 'range'; input.min = item.min != null ? item.min : 1; input.max = item.max != null ? item.max : 5; input.step = 1; input.value = item.default != null ? item.default : input.min;
-                                const out = document.createElement('div'); out.className = 'hint'; out.id = id + '_out'; out.textContent = 'Valor: ' + input.value; input.addEventListener('input', () => out.textContent = 'Valor: ' + input.value);
-                                col.appendChild(label); col.appendChild(input); col.appendChild(out); input.id = id; input.name = id; if (item.required) input.required = true; grid.appendChild(col); return
-                            } else { input = document.createElement('input'); input.type = 'text' }
-                            input.id = id; input.name = id; if (item.required) input.required = true; col.appendChild(label); col.appendChild(input); grid.appendChild(col)
-                        });
-                        box.appendChild(grid); cont.appendChild(box)
-                    });
-                    $('#qCount').textContent = qCount + ' itens';
-                    attachMasks()
-                }
+    <div id="modal" class="modal" hidden>
+      <div class="panel">
+        <div class="section-title">
+          <h3 id="modalTitle">Detalhes da resposta</h3>
+          <div class="row" style="gap:8px">
+            <button class="ghost" id="btnPrint">Imprimir</button>
+            <button class="secondary" id="modalClose" aria-label="Fechar">Fechar</button>
+          </div>
+        </div>
+        <div id="modalBody" class="modal-body"></div>
+      </div>
+    </div>
 
-                function onlyDigits(s) { return String(s || '').replace(/\D+/g, '') }
-                function formatCNPJ(v) { const s = onlyDigits(v).slice(0, 14); if (!s) return ''; if (s.length <= 2) return s; if (s.length <= 5) return s.slice(0, 2) + '.' + s.slice(2); if (s.length <= 8) return s.slice(0, 2) + '.' + s.slice(2, 5) + '.' + s.slice(5); if (s.length <= 12) return s.slice(0, 2) + '.' + s.slice(2, 5) + '.' + s.slice(5, 8) + '/' + s.slice(8); return s.slice(0, 2) + '.' + s.slice(2, 5) + '.' + s.slice(5, 8) + '/' + s.slice(8, 12) + '-' + s.slice(12) }
-                function formatPhone(v) { const s = onlyDigits(v).slice(0, 11); if (!s) return ''; if (s.length <= 2) return '(' + s; if (s.length <= 6) return '(' + s.slice(0, 2) + ') ' + s.slice(2); if (s.length <= 10) return '(' + s.slice(0, 2) + ') ' + s.slice(2, 6) + '-' + s.slice(6); return '(' + s.slice(0, 2) + ') ' + s.slice(2, 7) + '-' + s.slice(7) }
-                function normalizeCityUF(v) { if (!v) return ''; const parts = String(v).split('/'); let city = (parts[0] || '').trim(); let uf = (parts[1] || '').trim(); if (city) { city = city.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()) } if (uf) { uf = uf.slice(0, 2).toUpperCase() } return uf ? (city ? city + '/' + uf : uf) : city }
-                function clampPercent(el) { let s = String(el.value || '').replace(',', '.'); let n = parseFloat(s); if (isNaN(n)) { el.value = ''; return } if (n < 0) n = 0; if (n > 100) n = 100; el.value = String(n) }
-                function attachQuestionMasks() { try { schema.sections.forEach(sec => { sec.items.forEach(item => { const id = 'q_' + sec.key + '_' + (item.id || slug(item.label)); const el = document.getElementById(id); if (!el) return; if (item.type === 'number') { el.inputMode = 'decimal'; if (item.max === 100 || /%/.test(item.label || '')) { if (!el._pct) { el.addEventListener('input', () => clampPercent(el)); el.addEventListener('blur', () => clampPercent(el)); el._pct = true } } if (item.min === 0 && !el._nonneg) { el.addEventListener('blur', () => { const v = parseFloat(String(el.value || '').replace(',', '.')); if (!isNaN(v) && v < 0) el.value = '0' }); el._nonneg = true } } }) }) } catch (e) { } }
-                function attachMasks() {
-                    const cnpj = $('#c-cnpj'); if (cnpj && !cnpj._mk) { cnpj.inputMode = 'numeric'; cnpj.placeholder = cnpj.placeholder || '00.000.000/0000-00'; cnpj.addEventListener('input', () => cnpj.value = formatCNPJ(cnpj.value)); cnpj._mk = true }
-                    const tel = $('#c-tel'); if (tel && !tel._mk) { tel.inputMode = 'numeric'; tel.placeholder = tel.placeholder || '(00) 00000-0000'; tel.addEventListener('input', () => tel.value = formatPhone(tel.value)); tel._mk = true }
-                    const loc = $('#c-local'); if (loc && !loc._mk) { loc.addEventListener('blur', () => loc.value = normalizeCityUF(loc.value)); loc._mk = true }
-                    const email = $('#c-email'); if (email && !email._mk) { email.addEventListener('blur', () => email.value = String(email.value || '').trim().toLowerCase()); email._mk = true }
-                    attachQuestionMasks()
-                }
-                function normalizeNumberScore(v, min, max, lowerIsBetter) {
-                    if (v == null || isNaN(v) || max == null || min == null || max === min) return null;
-                    const ratio = (Number(v) - Number(min)) / (Number(max) - Number(min));
-                    const clamped = Math.max(0, Math.min(1, ratio));
-                    return lowerIsBetter ? (1 - clamped) : clamped;
-                }
+  </div>
 
+  <!-- Firebase (opcional) -->
+  <script>
+    (function(){
+      const firebaseConfig = {
+        apiKey: "",
+        authDomain: "",
+        projectId: "",
+        storageBucket: "",
+        messagingSenderId: "",
+        appId: ""
+      };
+      const hasConfig = !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId);
+      if (!window.firebase || !hasConfig) { window.firebaseApi = null; return; }
+      try {
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        db.enablePersistence({ synchronizeTabs: true }).catch(()=>{});
+        const TENANT_ID = "default";
+        function coll(){ return db.collection('tenants').doc(TENANT_ID).collection('maturity_responses'); }
+        async function saveRecord(rec){ rec._createdAtServer = firebase.firestore.FieldValue.serverTimestamp(); const ref = await coll().add(rec); return ref.id; }
+        function subscribe(onChange){ coll().orderBy('createdAt','desc').onSnapshot(snap=>{ const arr=[]; snap.forEach(doc=>arr.push({_id:doc.id,...doc.data()})); if (typeof onChange==='function') onChange(arr); }, err=>console.warn('Snapshot Firestore falhou:', err?.code||err?.message||err)); }
+        async function deleteRecord(id){ await coll().doc(id).delete(); }
+        async function deleteAll(){ const snap=await coll().get(); const batch=db.batch(); snap.forEach(doc=>batch.delete(doc.ref)); await batch.commit(); }
+        window.firebaseApi = { saveRecord, subscribe, deleteRecord, deleteAll };
+      } catch(e){ console.error(e); window.firebaseApi = null; }
+    })();
+  </script>
 
-                function collectAnswers() {
-                    const base = {
-                        company: {
-                            name: $('#c-nome').value.trim(),
-                            cnpj: $('#c-cnpj').value.trim(),
-                            sector: $('#c-setor').value,
-                            size: $('#c-porte').value,
-                            employees: toNumber($('#c-emp').value),
-                            location: $('#c-local').value.trim(),
-                            contact: $('#c-contato').value.trim(),
-                            email: $('#c-email').value.trim(),
-                            phone: $('#c-tel').value.trim()
-                        },
-                        consent: $('#consent').checked,
-                        answers: {},
-                        scores: { env: null, soc: null, gov: null, total: null },
-                        createdAt: todayISO()
-                    };
+  <script>
+    (function(){
+      'use strict';
+      const LS_KEY_DATA   = 'maturity_submissions_v1';
+      const LS_KEY_SCHEMA = 'maturity_schema_v1';
+      const USE_LOCAL     = !window.firebaseApi;
 
-                    if (!base.company.name || !base.company.sector || !base.company.size) { alert('Preencha os campos obrigatórios de Dados da empresa.'); return null }
-                    if (!base.consent) { alert('É necessário concordar com o uso das informações.'); return null }
+      const SCALE_NAMES = ['Inexistente','Inicial','Em desenvolvimento','Consolidado','Avançado e sustentável'];
 
-                    const acc = {
-                        environment: { sum: 0, w: 0 },
-                        social: { sum: 0, w: 0 },
-                        governance: { sum: 0, w: 0 }
-                    };
+      // ======= DEFAULT SCHEMA (6 dimensões) =======
+      const defaultSchema = {
+        sections: [
+          {
+            key: 'estrategia_governanca',
+            title: '1 – Estratégia e Governança',
+            items: [
+              { id: 'planejamento_estrategico', label: 'Planejamento estratégico formalizado', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'modelo_decisao', label: 'Modelo de decisão (centralizado/colegiado)', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'reunioes_acompanhamento', label: 'Reuniões de acompanhamento com pautas e atas', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'criterios_recursos', label: 'Critérios transparentes para alocação de recursos', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'conselheiros_mentores', label: 'Presença de conselheiros ou mentores externos', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 }
+            ]
+          },
+          {
+            key: 'gestao_processos',
+            title: '2 – Gestão e Processos',
+            items: [
+              { id: 'processos_documentados', label: 'Processos documentados e revisados periodicamente', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'kpis_area', label: 'Métricas de desempenho (KPIs) por área', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'fluxos_aprovacao', label: 'Fluxos de aprovação claros', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'replicabilidade', label: 'Processos replicáveis e não dependentes de pessoas', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'integracao_areas', label: 'Integração entre áreas (marketing, vendas, operação, finanças)', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 }
+            ]
+          },
+          {
+            key: 'financas_sustentabilidade',
+            title: '3 – Finanças e Sustentabilidade',
+            items: [
+              { id: 'orcamento_fluxo', label: 'Orçamento anual e projeção de fluxo de caixa', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'rentabilidade_custos', label: 'Análise periódica de rentabilidade e custos', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'separacao_financas', label: 'Separação entre finanças pessoais e empresariais', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'reserva_reinvestimento', label: 'Reserva financeira e política de reinvestimento', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'mitigacao_riscos', label: 'Mitigação de riscos financeiros, tributários e contratuais', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 }
+            ]
+          },
+          {
+            key: 'pessoas_cultura',
+            title: '4 – Pessoas e Cultura Organizacional',
+            items: [
+              { id: 'cargos_responsabilidades', label: 'Descrição clara de cargos e responsabilidades', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'lideranca_desenvolvimento', label: 'Liderança focada em gestão e desenvolvimento', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'feedback_avaliacao', label: 'Processos de feedback e avaliação de desempenho', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'comunicacao_visao', label: 'Comunicação clara sobre visão e propósito da empresa', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'sucessao_lideres', label: 'Plano de sucessão e capacitação de novos líderes', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 }
+            ]
+          },
+          {
+            key: 'marketing_marca_relacionamento',
+            title: '5 – Marketing, Marca e Relacionamento',
+            items: [
+              { id: 'posicionamento_marca', label: 'Posicionamento e discurso de marca claros', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'planejamento_marketing', label: 'Planejamento de marketing estruturado', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'canais_digitais', label: 'Gestão estratégica dos canais digitais', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'satisfacao_clientes', label: 'Monitoramento da satisfação e lealdade dos clientes (NPS)', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'stakeholders', label: 'Planos de relacionamento com stakeholders', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 }
+            ]
+          },
+          {
+            key: 'inovacao_crescimento_esg',
+            title: '6 – Inovação, Crescimento e ESG',
+            items: [
+              { id: 'cultura_inovacao', label: 'Cultura de inovação e melhoria contínua', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'capacitacao_aprendizado', label: 'Investimento em capacitação e aprendizado organizacional', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'digitalizacao_tecnologia', label: 'Digitalização de processos e uso estratégico da tecnologia', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'etica_transparencia', label: 'Práticas de ética, sustentabilidade e transparência', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 },
+              { id: 'projetos_sociais_ambientais', label: 'Participação em projetos sociais ou ambientais', type: 'scale', min: 1, max: 5, default: 3, score: true, weight: 1 }
+            ]
+          }
+        ]
+      };
 
-                    for (const sec of schema.sections) {
-                        for (const item of sec.items) {
-                            const id = `q_${sec.key}_${item.id || slug(item.label)}`;
-                            const el = document.getElementById(id);
-                            if (!el) continue;
+      // ======= HELPERS =======
+      const $  = s => document.querySelector(s);
+      const $$ = s => Array.from(document.querySelectorAll(s));
+      const onlyDigits = s => String(s||'').replace(/\D+/g,'');
+      const toNumber = v => (v==null || v==='') ? null : Number(String(v).replace(',','.'));
+      const todayISO = () => new Date().toISOString();
+      const dateBR = iso => { try { return new Date(iso).toLocaleString('pt-BR'); } catch { return iso; } };
+      const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 
-                            let v = el.value;
-                            if (item.type === 'number') v = (v === '' ? null : toNumber(v));
-                            if (item.type === 'yesno' && v === '') v = null;
-                            if (item.type === 'scale') v = Number(el.value);
+      function loadSchema(){ try { const s = JSON.parse(localStorage.getItem(LS_KEY_SCHEMA)||'null'); return (s && Array.isArray(s.sections)) ? s : defaultSchema; } catch { return defaultSchema; } }
+      function saveSchema(schema){ localStorage.setItem(LS_KEY_SCHEMA, JSON.stringify(schema)); }
+      function loadData(){ if(!USE_LOCAL) return []; try { return JSON.parse(localStorage.getItem(LS_KEY_DATA)||'[]'); } catch { return []; } }
+      function saveData(arr){ if(!USE_LOCAL) return; localStorage.setItem(LS_KEY_DATA, JSON.stringify(arr)); }
 
-                            base.answers[id] = v;
+      let schema = loadSchema();
+      let DATA   = loadData();
+      let CHARTS = { trend: null, sector: null, size: null };
 
-                            if (item.score) {
-                                let s = null;
+      function formatCNPJ(v){ const s = onlyDigits(v).slice(0,14); if(!s) return ''; if(s.length<=2) return s; if(s.length<=5) return s.slice(0,2)+'.'+s.slice(2); if(s.length<=8) return s.slice(0,2)+'.'+s.slice(2,5)+'.'+s.slice(5); if(s.length<=12) return s.slice(0,2)+'.'+s.slice(2,5)+'.'+s.slice(5,8)+'/'+s.slice(8); return s.slice(0,2)+'.'+s.slice(2,5)+'.'+s.slice(5,8)+'/'+s.slice(8,12)+'-'+s.slice(12); }
+      function formatPhone(v){ const s = onlyDigits(v).slice(0,11); if(!s) return ''; if(s.length<=2) return '('+s; if(s.length<=6) return '('+s.slice(0,2)+') '+s.slice(2); if(s.length<=10) return '('+s.slice(0,2)+') '+s.slice(2,6)+'-'+s.slice(6); return '('+s.slice(0,2)+') '+s.slice(2,7)+'-'+s.slice(7); }
+      function normalizeCityUF(v){ if(!v) return ''; const parts=String(v).split('/'); let city=(parts[0]||'').trim(); let uf=(parts[1]||'').trim(); if(city){ city = city.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()); } if(uf){ uf = uf.slice(0,2).toUpperCase(); } return uf ? (city? city+'/'+uf : uf) : city; }
 
-                                if (item.type === 'yesno') {
-                                    s = (v === 'Sim') ? 1 : (v === 'Não' ? 0 : null);
-                                } else if (item.type === 'scale') {
-                                    const max = item.max != null ? item.max : 5;
-                                    const min = item.min != null ? item.min : 1;
-                                    s = (v == null ? null : (v - min) / (max - min));
-                                } else if (item.type === 'select' && item.scores) {
-                                    s = (v != null && v !== '' && (v in item.scores)) ? Number(item.scores[v]) : null;
-                                } else if (item.type === 'number') {
-                                    const hasMax = (typeof item.max === 'number');
-                                    const min = (typeof item.min === 'number') ? item.min : 0;
-                                    const max = hasMax ? item.max : null;
-                                    if (max != null) {
-                                        s = normalizeNumberScore(v, min, max, !!item.lowerIsBetter);
-                                    } else {
-                                        // sem max não dá para normalizar; não pontua
-                                        s = null;
-                                    }
-                                }
+      function attachMasks(){
+        const cnpj=$('#c-cnpj'); if(cnpj && !cnpj._mk){ cnpj.inputMode='numeric'; cnpj.addEventListener('input',()=>cnpj.value=formatCNPJ(cnpj.value)); cnpj._mk=true; }
+        const tel=$('#c-tel'); if(tel && !tel._mk){ tel.inputMode='numeric'; tel.addEventListener('input',()=>tel.value=formatPhone(tel.value)); tel._mk=true; }
+        const loc=$('#c-local'); if(loc && !loc._mk){ loc.addEventListener('blur',()=>loc.value=normalizeCityUF(loc.value)); loc._mk=true; }
+        const email=$('#c-email'); if(email && !email._mk){ email.addEventListener('blur',()=>email.value=String(email.value||'').trim().toLowerCase()); email._mk=true; }
+      }
 
-                                if (s != null && isFinite(s)) {
-                                    const w = (typeof item.weight === 'number' && item.weight > 0) ? item.weight : 1;
-                                    acc[sec.key].sum += s * w;
-                                    acc[sec.key].w += w;
-                                }
-                            }
-                        }
-                    }
-
-                    const env = acc.environment.w ? (acc.environment.sum / acc.environment.w) : null;
-                    const soc = acc.social.w ? (acc.social.sum / acc.social.w) : null;
-                    const gov = acc.governance.w ? (acc.governance.sum / acc.governance.w) : null;
-
-                    base.scores.env = env;
-                    base.scores.soc = soc;
-                    base.scores.gov = gov;
-
-                    // peso por pilar (usa apenas os disponíveis)
-                    const pw = (schema.pillarWeights || { environment: 1, social: 1, governance: 1 });
-                    let totSum = 0, totW = 0;
-                    if (env != null) { totSum += env * (pw.environment || 1); totW += (pw.environment || 1); }
-                    if (soc != null) { totSum += soc * (pw.social || 1); totW += (pw.social || 1); }
-                    if (gov != null) { totSum += gov * (pw.governance || 1); totW += (pw.governance || 1); }
-
-                    base.scores.total = totW ? (totSum / totW) : null;
-                    return base;
-                }
-
-                function renderTable(data) { const tbody = $('#subsTable tbody'); const q = ($('#filter')?.value || '').toLowerCase(); tbody.innerHTML = ''; data.forEach((it, idx) => { const name = it.company?.name || ''; const sector = it.company?.sector || ''; const loc = it.company?.location || ''; const hay = (name + ' ' + sector + ' ' + loc).toLowerCase(); if (q && hay.indexOf(q) === -1) return; const tr = document.createElement('tr'); const tds = [dateBR(it.createdAt), name, sector, (it.company?.size || ''), loc, (it.scores.env != null ? Math.round(it.scores.env * 100) + '%' : '-'), (it.scores.soc != null ? Math.round(it.scores.soc * 100) + '%' : '-'), (it.scores.gov != null ? Math.round(it.scores.gov * 100) + '%' : '-'), (it.scores.total != null ? Math.round(it.scores.total * 100) + '%' : '-')]; tds.forEach(val => { const td = document.createElement('td'); td.textContent = val; tr.appendChild(td) }); const tdAct = document.createElement('td'); const b1 = document.createElement('button'); b1.className = 'secondary'; b1.dataset.act = 'view'; b1.dataset.idx = String(idx); b1.textContent = 'Ver'; const b2 = document.createElement('button'); b2.className = 'ghost'; b2.dataset.act = 'del'; b2.dataset.idx = String(idx); b2.textContent = 'Del'; tdAct.appendChild(b1); tdAct.appendChild(b2); tr.appendChild(tdAct); tbody.appendChild(tr) }) }
-
-                function openModalByIndex(idx) {
-                    const rec = getData()[idx];
-                    if (!rec) return;
-                    const modal = document.getElementById('modal');
-                    const title = document.getElementById('modalTitle');
-                    const body = document.getElementById('modalBody');
-                    title.textContent = rec.company?.name || 'Detalhes da resposta';
-                    body.innerHTML = '';
-
-                    function row(label, value) { const tr = document.createElement('tr'); const td1 = document.createElement('td'); td1.textContent = label; td1.style.width = '40%'; const td2 = document.createElement('td'); td2.textContent = (value == null || value === '') ? '—' : String(value); tr.append(td1, td2); return tr }
-
-                    const c = rec.company;
-                    const card1 = document.createElement('div'); card1.className = 'card';
-                    const ctitle = document.createElement('div'); ctitle.className = 'section-title'; const h = document.createElement('h3'); h.textContent = 'Empresa'; ctitle.appendChild(h); card1.appendChild(ctitle);
-                    const t1 = document.createElement('table'); const tb1 = document.createElement('tbody');
-                    tb1.append(row('Data', dateBR(rec.createdAt)));
-                    tb1.append(row('Razão social', c.name));
-                    tb1.append(row('CNPJ', c.cnpj));
-                    tb1.append(row('Setor', c.sector));
-                    tb1.append(row('Porte', c.size));
-                    tb1.append(row('Cidade/UF', c.location));
-                    tb1.append(row('Contato', c.contact));
-                    tb1.append(row('E-mail', c.email));
-                    tb1.append(row('Telefone', c.phone));
-                    t1.appendChild(tb1); card1.appendChild(t1); body.appendChild(card1);
-
-                    const card2 = document.createElement('div'); card2.className = 'card';
-                    const st = document.createElement('div'); st.className = 'section-title'; const hs = document.createElement('h3'); hs.textContent = 'Scores'; st.appendChild(hs); card2.appendChild(st);
-                    const chips = document.createElement('div'); chips.className = 'chips';
-                    const pct = n => n == null ? '—' : (Math.round(n * 100) + '%');
-                    ['E', 'S', 'G', 'Total'].forEach((k, i) => { const span = document.createElement('span'); span.className = 'chip'; const val = [rec.scores.env, rec.scores.soc, rec.scores.gov, rec.scores.total][i]; span.textContent = `${k}: ${pct(val)}`; chips.appendChild(span) });
-                    card2.appendChild(chips); body.appendChild(card2);
-
-                    schema.sections.forEach(sec => {
-                        const card = document.createElement('div'); card.className = 'card';
-                        const st = document.createElement('div'); st.className = 'section-title'; const hh = document.createElement('h3'); hh.textContent = sec.title; st.appendChild(hh); card.appendChild(st);
-                        const t = document.createElement('table'); const tb = document.createElement('tbody');
-                        sec.items.forEach(item => { const id = `q_${sec.key}_${item.id || slug(item.label)}`; const v = rec.answers[id]; tb.appendChild(row(item.label, (v == null || v === '') ? '—' : v)) });
-                        t.appendChild(tb); card.appendChild(t); body.appendChild(card);
-                    });
-
-                    modal.hidden = false;
-                }
-                function closeModal() { const modal = document.getElementById('modal'); if (modal) modal.hidden = true }
-
-                function refreshCounts(data) { const n = data.length; $('#subCount').textContent = n + (n === 1 ? ' resposta' : ' respostas'); $('#kpiCount').textContent = n; updateDashboard(data); renderTable(data) }
-
-                function monthKey(d) { const dt = new Date(d); return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, '0') }
-
-                function updateCharts(data) {
-                    const byMonth = {}; data.forEach(r => { const k = monthKey(r.createdAt); byMonth[k] = byMonth[k] || { e: [], s: [], g: [] }; if (r.scores.env != null) byMonth[k].e.push(r.scores.env * 100); if (r.scores.soc != null) byMonth[k].s.push(r.scores.soc * 100); if (r.scores.gov != null) byMonth[k].g.push(r.scores.gov * 100) });
-                    const mLabels = Object.keys(byMonth).sort();
-                    const avg = v => v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
-                    const eData = mLabels.map(m => Math.round(avg(byMonth[m].e))); const sData = mLabels.map(m => Math.round(avg(byMonth[m].s))); const gData = mLabels.map(m => Math.round(avg(byMonth[m].g)));
-                    const trendCtx = $('#chartTrend');
-                    if (CHARTS.trend) { CHARTS.trend.destroy() }
-                    CHARTS.trend = new Chart(trendCtx, { type: 'line', data: { labels: mLabels, datasets: [{ label: 'E', data: eData }, { label: 'S', data: sData }, { label: 'G', data: gData }] }, options: { responsive: true, interaction: { mode: 'index', intersect: false }, scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '%' } } } } });
-
-                    const bySector = {}; data.forEach(d => { const k = d.company?.sector || '—'; const v = (d.scores.total != null) ? d.scores.total * 100 : null; if (v != null) { (bySector[k] || (bySector[k] = [])).push(v) } });
-                    const sLabels = Object.keys(bySector); const sVals = sLabels.map(k => Math.round(avg(bySector[k])));
-                    const sectorCtx = $('#chartSector'); if (CHARTS.sector) { CHARTS.sector.destroy() }
-                    CHARTS.sector = new Chart(sectorCtx, { type: 'bar', data: { labels: sLabels, datasets: [{ label: 'Score médio', data: sVals }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '%' } } } } });
-
-                    const bySize = {}; data.forEach(d => { const k = d.company?.size || '—'; bySize[k] = (bySize[k] || 0) + 1 });
-                    const zLabels = Object.keys(bySize); const zVals = zLabels.map(k => bySize[k]);
-                    const sizeCtx = $('#chartSize'); if (CHARTS.size) { CHARTS.size.destroy() }
-                    CHARTS.size = new Chart(sizeCtx, { type: 'doughnut', data: { labels: zLabels, datasets: [{ data: zVals }] }, options: { responsive: true } });
-                }
-
-                function updateQuality(data) {
-                    const n = data.length; const digits = s => String(s || '').replace(/\D+/g, '');
-                    const reMail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    let okMail = 0, okCNPJ = 0, okPhone = 0, okLoc = 0, okEmp = 0, okConsent = 0, complete = 0; const issues = { email: 0, cnpj: 0, phone: 0, loc: 0, emp: 0, consent: 0 };
-                    data.forEach(d => {
-                        const mail = reMail.test(d.company.email || ''); if (mail) okMail++; else issues.email++;
-                        const cnpj = digits(d.company.cnpj).length === 14; if (cnpj) okCNPJ++; else issues.cnpj++;
-                        const phoneLen = digits(d.company.phone).length; const phone = phoneLen === 10 || phoneLen === 11; if (phone) okPhone++; else issues.phone++;
-                        const loc = !!(d.company.location && d.company.location.includes('/')); if (loc) okLoc++; else issues.loc++;
-                        const emp = typeof d.company.employees === 'number' && d.company.employees >= 0; if (emp) okEmp++; else issues.emp++;
-                        const cons = !!d.consent; if (cons) okConsent++; else issues.consent++;
-                        if (mail && cnpj && phone && loc && emp && cons) complete++;
-                    });
-                    const pct = x => n ? Math.round(100 * x / n) : 0;
-                    $('#qReg').textContent = n; $('#qComplete').textContent = pct(complete) + '%'; $('#qConsent').textContent = pct(okConsent) + '%';
-                    $('#qPctEmail').textContent = pct(okMail) + '%'; $('#qBarEmail').style.width = pct(okMail) + '%';
-                    $('#qPctCNPJ').textContent = pct(okCNPJ) + '%'; $('#qBarCNPJ').style.width = pct(okCNPJ) + '%';
-                    $('#qPctPhone').textContent = pct(okPhone) + '%'; $('#qBarPhone').style.width = pct(okPhone) + '%';
-                    $('#qPctLoc').textContent = pct(okLoc) + '%'; $('#qBarLoc').style.width = pct(okLoc) + '%';
-                    $('#qPctEmp').textContent = pct(okEmp) + '%'; $('#qBarEmp').style.width = pct(okEmp) + '%';
-                    const entries = Object.entries(issues).filter(([k, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
-                    const wrap = $('#qIssues');
-                    if (!entries.length) { wrap.textContent = 'Sem problemas.' }
-                    else { wrap.innerHTML = '<ul>' + entries.map(([k, v]) => `<li>${k.toUpperCase()}: ${v}</li>`).join('') + '</ul>' }
-                }
-
-                function updateDashboard(data) {
-                    const valid = data.filter(d => d.scores.total != null); const avg = (arr, k) => arr.length ? arr.reduce((a, b) => a + (b.scores[k] || 0), 0) / arr.length : 0; const e = avg(valid, 'env'), s = avg(valid, 'soc'), g = avg(valid, 'gov'); const t = valid.length ? (e + s + g) / 3 : 0; $('#kpiE').textContent = Math.round(e * 100) + '%'; $('#barE').style.width = Math.round(e * 100) + '%'; $('#kpiS').textContent = Math.round(s * 100) + '%'; $('#barS').style.width = Math.round(s * 100) + '%'; $('#kpiG').textContent = Math.round(g * 100) + '%'; $('#barG').style.width = Math.round(g * 100) + '%'; $('#kpiTotal').textContent = Math.round(t * 100) + '%'; $('#barT').style.width = Math.round(t * 100) + '%';
-                    const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30); const monthCount = data.filter(d => new Date(d.createdAt) >= monthAgo).length; const consentCount = data.filter(d => d.consent).length; const consentPct = data.length ? Math.round(100 * consentCount / data.length) : 0; const uniqKey = d => (String(d.company.cnpj || '').trim().toLowerCase()) || (String(d.company.name || '').trim().toLowerCase()); const uniq = new Set(data.map(uniqKey).filter(Boolean)); const employeesArr = data.map(d => d.company.employees).filter(v => typeof v === 'number' && !isNaN(v)); const empAvg = employeesArr.length ? Math.round(employeesArr.reduce((a, b) => a + b, 0) / employeesArr.length) : 0; const elMonth = $('#kpiMonth'); if (elMonth) elMonth.textContent = monthCount; const elConsent = $('#kpiConsent'); if (elConsent) elConsent.textContent = consentPct + '%'; const elUnique = $('#kpiUnique'); if (elUnique) elUnique.textContent = uniq.size; const elEmpAvg = $('#kpiEmpAvg'); if (elEmpAvg) elEmpAvg.textContent = empAvg;
-                    const yesnoDefs = []; schema.sections.forEach(sec => { sec.items.forEach(item => { if (item.type === 'yesno') { const id = `q_${sec.key}_${item.id || slug(item.label)}`; yesnoDefs.push({ id, label: item.label, section: sec.title }) } }) }); const yesnoStats = yesnoDefs.map(def => { let base = 0, yes = 0; data.forEach(d => { const v = d.answers ? d.answers[def.id] : undefined; if (v !== undefined && v !== null && v !== '') { base++; if (v === 'Sim') yes++ } }); const pct = base ? Math.round(100 * yes / base) : null; return { ...def, base, yes, pct } }).filter(r => r.pct !== null).sort((a, b) => b.pct - a.pct || b.yes - a.yes).slice(0, 6);
-                    const listYesNo = $('#listYesNo'); if (listYesNo) { listYesNo.innerHTML = ''; if (yesnoStats.length === 0) { listYesNo.textContent = 'Sem dados.' } else { const ul = document.createElement('ul'); yesnoStats.forEach(r => { const li = document.createElement('li'); li.textContent = `${r.label} — ${r.pct}% (${r.yes}/${r.base})`; ul.appendChild(li) }); listYesNo.appendChild(ul) } }
-                    const bySector = {}; data.forEach(d => { const s = d.company?.sector || '—'; bySector[s] = (bySector[s] || 0) + 1 }); const sectorList = Object.entries(bySector).sort((a, b) => b[1] - a[1]).slice(0, 6); const listSectors = $('#listSectors'); if (listSectors) { listSectors.innerHTML = ''; if (sectorList.length === 0) { listSectors.textContent = 'Sem dados.' } else { const ul = document.createElement('ul'); sectorList.forEach(([s, c]) => { const li = document.createElement('li'); li.textContent = `${s}: ${c}`; ul.appendChild(li) }); listSectors.appendChild(ul) } }
-                    const bySize = {}; data.forEach(d => { const s = d.company?.size || '—'; bySize[s] = (bySize[s] || 0) + 1 }); const sizeList = Object.entries(bySize).sort((a, b) => b[1] - a[1]); const listSizes = $('#listSizes'); if (listSizes) { listSizes.innerHTML = ''; if (sizeList.length === 0) { listSizes.textContent = 'Sem dados.' } else { const ul = document.createElement('ul'); sizeList.forEach(([s, c]) => { const li = document.createElement('li'); li.textContent = `${s}: ${c}`; ul.appendChild(li) }); listSizes.appendChild(ul) } }
-                    updateCharts(data); updateQuality(data)
-                }
-
-                function flattenForExport(rec) { const flat = { data: dateBR(rec.createdAt), empresa: rec.company.name, cnpj: rec.company.cnpj, setor: rec.company.sector, porte: rec.company.size, colaboradores: rec.company.employees, cidadeUF: rec.company.location, contato: rec.company.contact, email: rec.company.email, telefone: rec.company.phone, score_ambiental: rec.scores.env != null ? Math.round(rec.scores.env * 100) : null, score_social: rec.scores.soc != null ? Math.round(rec.scores.soc * 100) : null, score_governanca: rec.scores.gov != null ? Math.round(rec.scores.gov * 100) : null, score_total: rec.scores.total != null ? Math.round(rec.scores.total * 100) : null }; for (const k in rec.answers) { flat[k] = rec.answers[k] } return flat }
-                function unionHeaders(rows) { return Array.from(new Set(rows.flatMap(r => Object.keys(r)))).sort() }
-
-                function exportXLSX() {
-                    var data = getData();
-                    var wb = XLSX.utils.book_new();
-
-                    var baseCols = ['data', 'empresa', 'cnpj', 'setor', 'porte', 'cidadeUF', 'contato', 'email', 'telefone', 'colaboradores', 'score_ambiental', 'score_social', 'score_governanca', 'score_total'];
-                    var labelBase = {
-                        data: 'Data', empresa: 'Empresa', cnpj: 'CNPJ', setor: 'Setor', porte: 'Porte', cidadeUF: 'Cidade/UF', contato: 'Contato', email: 'E-mail', telefone: 'Telefone', colaboradores: 'Colaboradores',
-                        score_ambiental: 'Score Ambiental', score_social: 'Score Social', score_governanca: 'Score Governança', score_total: 'Score Total'
-                    };
-                    var labelMap = {};
-                    var qKeys = [];
-                    (schema.sections || []).forEach(function (sec) {
-                        (sec.items || []).forEach(function (item) {
-                            var k = 'q_' + sec.key + '_' + (item.id || slug(item.label));
-                            qKeys.push(k);
-                            labelMap[k] = sec.title + ' – ' + item.label;
-                        });
-                    });
-                    var headers = baseCols.concat(qKeys);
-                    var headerLabels = headers.map(function (h) { return labelBase[h] || labelMap[h] || h });
-
-                    function toRowObject(rec) {
-                        var base = {
-                            data: new Date(rec.createdAt),
-                            empresa: (rec.company && rec.company.name) || '',
-                            cnpj: (rec.company && rec.company.cnpj) || '',
-                            setor: (rec.company && rec.company.sector) || '',
-                            porte: (rec.company && rec.company.size) || '',
-                            cidadeUF: (rec.company && rec.company.location) || '',
-                            contato: (rec.company && rec.company.contact) || '',
-                            email: (rec.company && rec.company.email) || '',
-                            telefone: (rec.company && rec.company.phone) || '',
-                            colaboradores: (rec.company && typeof rec.company.employees === 'number' && !isNaN(rec.company.employees)) ? rec.company.employees : '',
-                            score_ambiental: (rec.scores && rec.scores.env != null) ? rec.scores.env : '',
-                            score_social: (rec.scores && rec.scores.soc != null) ? rec.scores.soc : '',
-                            score_governanca: (rec.scores && rec.scores.gov != null) ? rec.scores.gov : '',
-                            score_total: (rec.scores && rec.scores.total != null) ? rec.scores.total : ''
-                        };
-                        var ans = {};
-                        for (var i = 0; i < qKeys.length; i++) { var k = qKeys[i]; ans[k] = (rec.answers && k in rec.answers) ? rec.answers[k] : '' }
-                        var out = {};
-                        for (var j = 0; j < headers.length; j++) { var h = headers[j]; out[h] = (h in base) ? base[h] : ans[h] }
-                        return out;
-                    }
-
-                    var flat = data.map(toRowObject);
-
-                    var titleRow = ['AciaESG – Exportação'];
-                    var infoRow = ['Gerado em', new Date(), 'Registros', data.length];
-                    var ws = XLSX.utils.aoa_to_sheet([titleRow, infoRow, headerLabels]);
-                    XLSX.utils.sheet_add_json(ws, flat, { header: headers, origin: 'A4', skipHeader: true });
-
-                    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
-                    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 2, c: 0 }, e: { r: 2, c: headers.length - 1 } }) };
-
-                    var widths = [];
-                    for (var c = 0; c < headers.length; c++) {
-                        var w = headerLabels[c].length + 2;
-                        for (var r = 0; r < flat.length; r++) {
-                            var v = flat[r][headers[c]];
-                            var s = (v instanceof Date) ? v.toLocaleString('pt-BR') : (v == null ? '' : String(v));
-                            if (s.length > w) w = s.length;
-                        }
-                        if (headers[c] === 'cnpj') w = 20; if (headers[c] === 'email') w = 28; if (headers[c] === 'telefone') w = 16; if (headers[c] === 'cidadeUF') w = 16;
-                        widths.push({ wch: Math.min(Math.max(10, w + 1), 40) });
-                    }
-                    ws['!cols'] = widths;
-
-                    function setFmt(r, c, z) { var addr = XLSX.utils.encode_cell({ r: r, c: c }); if (ws[addr]) ws[addr].z = z }
-                    for (var rr = 3; rr < flat.length + 3; rr++) { setFmt(rr, 0, 'dd/mm/yyyy hh:mm') }
-                    var pctIdx = [headers.indexOf('score_ambiental'), headers.indexOf('score_social'), headers.indexOf('score_governanca'), headers.indexOf('score_total')].filter(function (i) { return i >= 0 });
-                    for (var r2 = 3; r2 < flat.length + 3; r2++) {
-                        for (var k = 0; k < pctIdx.length; k++) {
-                            var ci = pctIdx[k];
-                            var addr2 = XLSX.utils.encode_cell({ r: r2, c: ci });
-                            if (ws[addr2] && typeof ws[addr2].v === 'number') { ws[addr2].z = '0%' }
-                        }
-                    }
-
-                    XLSX.utils.book_append_sheet(wb, ws, 'Dados');
-
-                    var valid = data.filter(function (d) { return d.scores && d.scores.total != null });
-                    function avg(arr, key) { if (!arr.length) return 0; var s = 0; for (var i = 0; i < arr.length; i++) { s += arr[i].scores[key] || 0 } return s / arr.length }
-                    var e = avg(valid, 'env'), s = avg(valid, 'soc'), g = avg(valid, 'gov');
-                    var t = valid.length ? (e + s + g) / 3 : 0;
-                    var monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30);
-                    var monthCount = data.filter(function (d) { return new Date(d.createdAt) >= monthAgo }).length;
-                    var consentCount = data.filter(function (d) { return !!d.consent }).length; var consentPct = data.length ? (consentCount / data.length) : 0;
-                    function uniqKey(d) { var c = (d.company && d.company.cnpj) || ''; c = String(c).trim().toLowerCase(); if (c) return c; var n = (d.company && d.company.name) || ''; return String(n).trim().toLowerCase(); }
-                    var uniq = new Set(data.map(uniqKey).filter(function (x) { return !!x }));
-                    var employeesArr = data.map(function (d) { return d.company ? d.company.employees : null }).filter(function (v) { return typeof v === 'number' && !isNaN(v) });
-                    var empAvg = employeesArr.length ? (employeesArr.reduce(function (a, b) { return a + b }, 0) / employeesArr.length) : 0;
-
-                    var resumo = [['Resumo AciaESG'], ['Gerado em', new Date()], [], ['Respostas totais', data.length], ['Média Ambiental (E)', e], ['Média Social (S)', s], ['Média Governança (G)', g], ['Score Total Médio', t], ['Consentimento', consentPct], ['Últimos 30 dias', monthCount], ['Empresas únicas', uniq.size], ['Média colaboradores', empAvg]];
-                    var wsR = XLSX.utils.aoa_to_sheet(resumo);
-                    wsR['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
-                    wsR['!cols'] = [{ wch: 28 }, { wch: 20 }];
-                    var pctRows = [4, 5, 6, 7, 8];
-                    for (var i2 = 0; i2 < pctRows.length; i2++) { var pr = pctRows[i2]; var a = XLSX.utils.encode_cell({ r: pr, c: 1 }); if (wsR[a]) wsR[a].z = '0%' }
-                    var dA = XLSX.utils.encode_cell({ r: 1, c: 1 }); if (wsR[dA]) wsR[dA].z = 'dd/mm/yyyy hh:mm';
-                    XLSX.utils.book_append_sheet(wb, wsR, 'Resumo');
-
-                    var dict = [["Campo", "Rótulo", "Seção", "Tipo", "Pontua"]];
-                    for (var b = 0; b < baseCols.length; b++) { var k1 = baseCols[b]; dict.push([k1, labelBase[k1] || k1, '—', '—', '—']) }
-                    (schema.sections || []).forEach(function (sec) { (sec.items || []).forEach(function (item) { var kk = 'q_' + sec.key + '_' + (item.id || slug(item.label)); dict.push([kk, item.label, sec.title, item.type, (item.score ? 'Sim' : 'Não')]) }) });
-                    var wsD = XLSX.utils.aoa_to_sheet(dict); wsD['!cols'] = [{ wch: 36 }, { wch: 42 }, { wch: 18 }, { wch: 12 }, { wch: 10 }];
-                    XLSX.utils.book_append_sheet(wb, wsD, 'Dicionário');
-
-                    XLSX.writeFile(wb, 'esg_dados_' + new Date().toISOString().slice(0, 10) + '.xlsx', { cellDates: true });
-                }
-
-                function exportCSV() { const rows = getData().map(flattenForExport); if (!rows.length) { alert('Sem dados para exportar.'); return } const allKeys = unionHeaders(rows); const quote = v => { if (v == null) return ''; const s = String(v).replaceAll('"', '""'); return '"' + s + '"' }; const csv = [allKeys.join(';')].concat(rows.map(r => allKeys.map(k => quote(r[k])).join(';'))).join('\n'); const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `esg_dados_${new Date().toISOString().slice(0, 10)}.csv`; a.click() }
-                function exportJSON() { const data = getData(); const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `esg_dados_${new Date().toISOString().slice(0, 10)}.json`; a.click() }
-                function importJSONFile(file) { const reader = new FileReader(); reader.onload = e => { try { const parsed = JSON.parse(e.target.result); if (!Array.isArray(parsed)) throw new Error('JSON inválido: esperada uma lista.'); setData(parsed); alert('Importação concluída!') } catch (err) { alert('Falha ao importar: ' + err.message) } }; reader.readAsText(file) }
-
-                function switchTab(key) { $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === key)); $('#tab-new').hidden = key !== 'new'; $('#tab-submissions').hidden = key !== 'submissions'; $('#tab-questions').hidden = key !== 'questions'; $('#tab-dashboard').hidden = key !== 'dashboard'; if (key === 'submissions') renderTable(getData()); if (key === 'dashboard') updateDashboard(getData()); if (key === 'questions') $('#schemaEditor').value = JSON.stringify(schema, null, 2) }
-
-                document.addEventListener('click', e => { const tb = e.target.closest('.tab'); if (tb) { switchTab(tb.dataset.tab) } });
-
-                function getData() { return DATA }
-                function setData(arr) {
-                    DATA = Array.isArray(arr) ? arr : [];
-                    if (USE_LOCAL_DATA) saveData(DATA);
-                    refreshCounts(DATA)
-                }
-
-                $('#esgForm').addEventListener('submit', async e => {
-                    e.preventDefault();
-                    const rec = collectAnswers();
-                    if (!rec) return;
-                    try {
-                        if (window.firebaseApi) {
-                            const docId = await firebaseApi.saveRecord(rec);
-                            try { await postDiscord(rec, docId); } catch (_) { }
-                            alert('Resposta salva!');
-                            $('#esgForm').reset();
-                        } else {
-                            alert('Integração com Firestore não configurada. Informe o firebaseConfig.');
-                        }
-                    } catch (err) {
-                        console.error('Falha ao salvar no Firestore:', err);
-                        alert('Falha ao salvar no Firestore. Verifique conexão, regras e configurações.');
-                    }
-                });
-                $('#btnClear').addEventListener('click', () => $('#esgForm').reset());
-                $('#filter').addEventListener('input', () => renderTable(getData()));
-
-                $('#subsTable').addEventListener('click', e => { const btn = e.target.closest('button'); if (!btn) return; const idx = Number(btn.dataset.idx); const act = btn.dataset.act; const data = getData(); if (act === 'del') { if (confirm('Excluir esta resposta?')) { const id = data[idx]?._id; if (id && window.firebaseApi) { firebaseApi.deleteRecord(id); } else { data.splice(idx, 1); setData(data); } } } else if (act === 'view') { openModalByIndex(idx) } });
-                $('#btnDeleteAll').addEventListener('click', () => { if (confirm('Apagar TODAS as respostas? Esta ação não pode ser desfeita.')) { if (window.firebaseApi) { firebaseApi.deleteAll(); } else { setData([]); } } });
-                $('#btnExportXLSX').addEventListener('click', exportXLSX); $('#btnExportCSV').addEventListener('click', exportCSV); $('#btnExportJSON').addEventListener('click', exportJSON);
-                $('#importJson').addEventListener('change', e => { if (e.target.files && e.target.files[0]) importJSONFile(e.target.files[0]) });
-                document.getElementById('modalClose').addEventListener('click', closeModal);
-                document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
-                document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('modal').hidden) closeModal(); });
-                document.getElementById('btnPrint').addEventListener('click', () => window.print());
-                $('#btnSchemaSave').addEventListener('click', () => { try { const s = JSON.parse($('#schemaEditor').value); if (!s.sections || !Array.isArray(s.sections)) throw new Error('Campo "sections" ausente ou inválido.'); schema = s; saveSchema(schema); renderForm(); alert('Perguntas atualizadas!') } catch (err) { alert('JSON inválido: ' + err.message) } });
-                $('#btnSchemaReset').addEventListener('click', () => { if (confirm('Restaurar perguntas padrão?')) { schema = JSON.parse(JSON.stringify(defaultSchema)); saveSchema(schema); $('#schemaEditor').value = JSON.stringify(schema, null, 2); renderForm() } });
-
-                renderForm();
-                refreshCounts(getData());
-                attachMasks();
-                if (window.firebaseApi) {
-                    firebaseApi.subscribe(setData);
-                    try { localStorage.removeItem(LS_KEY_DATA); } catch (_) { }
-                }
-
-                function runTests() {
-                    const results = []; let fails = 0; const t = (name, cond) => { results.push({ name, pass: !!cond }); if (!cond) fails++ };
-                    t('formatCNPJ', formatCNPJ('11222333000181') === '11.222.333/0001-81');
-                    t('formatPhone 11d', formatPhone('19987654321') === '(19) 98765-4321');
-                    t('formatPhone 10d', formatPhone('1132654321') === '(11) 3265-4321');
-                    t('normalizeCityUF', normalizeCityUF('americana/sp') === 'Americana/SP');
-                    t('toNumber comma', toNumber('3,5') === 3.5);
-                    t('monthKey', monthKey('2024-01-15') === '2024-01');
-                    t('toNumber empty', toNumber('') === null);
-                    t('formatCNPJ clamp', formatCNPJ('11222333000181123') === '11.222.333/0001-81');
-                    console.table(results);
-                    if (fails) { alert('Alguns testes falharam. Veja o console.') } else { console.log('✓ Todos os testes passaram') }
-                }
-                (function () { const p = new URLSearchParams(location.search); if (p.get('test') === '1') runTests() })();
-            })();
-        </script>
-        <script>
-            if ("serviceWorker" in navigator) {
-                window.addEventListener("load", () => {
-                    navigator.serviceWorker.register("./sw.js").catch(console.warn);
-                });
+      function renderForm(){
+        const cont = $('#dynamicSections'); cont.innerHTML=''; let qCount=0;
+        schema.sections.forEach(sec=>{
+          const box = document.createElement('div'); box.className='card'; box.style.marginBottom='10px';
+          const head= document.createElement('div'); head.className='section-title';
+          const h3  = document.createElement('h3'); h3.textContent=sec.title; head.appendChild(h3);
+          const badge=document.createElement('span'); badge.className='badge'; badge.textContent=(sec.items.length||0)+' itens'; head.appendChild(badge);
+          box.appendChild(head);
+          const grid=document.createElement('div'); grid.className='grid';
+          sec.items.forEach(item=>{
+            qCount++;
+            const col=document.createElement('div'); col.className='col-6';
+            const id = `q_${sec.key}_${item.id || slug(item.label)}`;
+            const label=document.createElement('label'); label.setAttribute('for',id); label.textContent=item.label;
+            let input, out;
+            if(item.type==='scale'){
+              input=document.createElement('input'); input.type='range'; input.min=item.min??1; input.max=item.max??5; input.step=1; input.value=item.default??input.min;
+              out=document.createElement('div'); out.className='hint'; out.id=id+'_out';
+              const refresh = ()=>{ const val=Number(input.value); const txt=SCALE_NAMES[val-1]||('Nível '+val); out.textContent=`Valor: ${val} — ${txt}`; };
+              input.addEventListener('input', refresh); setTimeout(refresh,0);
+              col.appendChild(label); col.appendChild(input); col.appendChild(out);
+            } else {
+              input=document.createElement('input'); input.type='text'; col.appendChild(label); col.appendChild(input);
             }
-        </script>
-</body>
+            input.id=id; input.name=id; if(item.required) input.required=true; grid.appendChild(col);
+          });
+          box.appendChild(grid); cont.appendChild(box);
+        });
+        $('#qCount').textContent=qCount+' itens';
+        attachMasks();
+      }
 
+      function getDimensionKeys(){ return schema.sections.map(s=>s.key); }
+      function getDimensionMap(){ const m={}; schema.sections.forEach(s=>m[s.key]=s.title); return m; }
+
+      function collectAnswers(){
+        const base = {
+          company: {
+            name: $('#c-nome').value.trim(),
+            cnpj: $('#c-cnpj').value.trim(),
+            sector: $('#c-setor').value,
+            size: $('#c-porte').value,
+            employees: toNumber($('#c-emp').value),
+            location: $('#c-local').value.trim(),
+            contact: $('#c-contato').value.trim(),
+            email: $('#c-email').value.trim(),
+            phone: $('#c-tel').value.trim()
+          },
+          consent: $('#consent').checked,
+          answers: {},
+          scores: { dimensions: {}, total: null },
+          createdAt: todayISO()
+        };
+
+        if(!base.company.name || !base.company.sector || !base.company.size){ alert('Preencha os campos obrigatórios de Dados da empresa.'); return null; }
+        if(!base.consent){ alert('É necessário concordar com o uso das informações.'); return null; }
+
+        const acc = {}; // { key: { sum, w } }
+        schema.sections.forEach(sec=>{ acc[sec.key]={ sum:0, w:0 }; });
+
+        for(const sec of schema.sections){
+          for(const item of sec.items){
+            const id = `q_${sec.key}_${item.id || slug(item.label)}`;
+            const el = document.getElementById(id);
+            if(!el) continue;
+            let v = el.value;
+            if(item.type==='scale') v = Number(el.value);
+            base.answers[id] = v;
+            if(item.score && item.type==='scale'){
+              const min=item.min??1, max=item.max??5; const s=(v-min)/(max-min); if(!isNaN(s)) { const w=(item.weight>0?item.weight:1); acc[sec.key].sum += s*w; acc[sec.key].w += w; }
+            }
+          }
+        }
+
+        let totalSum=0, totalW=0;
+        schema.sections.forEach(sec=>{
+          const a=acc[sec.key]; const avg = a.w? (a.sum/a.w): null; base.scores.dimensions[sec.key]=avg; if(avg!=null){ totalSum+=avg; totalW+=1; }
+        });
+        base.scores.total = totalW? (totalSum/totalW) : null;
+        return base;
+      }
+
+      function renderSubsTableHead(){
+        const thead = $('#subsHead'); thead.innerHTML='';
+        const tr = document.createElement('tr');
+        const baseCols = ['Data','Empresa','Setor','Porte','Cidade/UF'];
+        baseCols.forEach(h=>{ const th=document.createElement('th'); th.textContent=h; tr.appendChild(th); });
+        const dimMap = getDimensionMap();
+        Object.values(dimMap).forEach(title=>{ const th=document.createElement('th'); th.textContent=title; tr.appendChild(th); });
+        const thTot=document.createElement('th'); thTot.textContent='Total'; tr.appendChild(thTot);
+        const thAct=document.createElement('th'); thAct.textContent='Ações'; tr.appendChild(thAct);
+        thead.appendChild(tr);
+      }
+
+      function renderTable(data){
+        const tbody = $('#subsBody'); tbody.innerHTML='';
+        const q = ($('#filter')?.value||'').toLowerCase();
+        const dimKeys = getDimensionKeys();
+        data.forEach((it, idx)=>{
+          const name=it.company?.name||''; const sector=it.company?.sector||''; const loc=it.company?.location||'';
+          const hay=(name+' '+sector+' '+loc).toLowerCase(); if(q && !hay.includes(q)) return;
+          const tr=document.createElement('tr');
+          const cells = [ dateBR(it.createdAt), name, sector, (it.company?.size||''), loc ];
+          cells.forEach(val=>{ const td=document.createElement('td'); td.textContent=val; tr.appendChild(td); });
+          dimKeys.forEach(k=>{ const td=document.createElement('td'); const v=it.scores?.dimensions?.[k]; td.textContent=(v!=null? Math.round(v*100)+'%':'-'); tr.appendChild(td); });
+          const tdTot=document.createElement('td'); tdTot.textContent=(it.scores?.total!=null? Math.round(it.scores.total*100)+'%':'-'); tr.appendChild(tdTot);
+          const tdAct=document.createElement('td');
+          const b1=document.createElement('button'); b1.className='secondary'; b1.dataset.act='view'; b1.dataset.idx=String(idx); b1.textContent='Ver';
+          const b2=document.createElement('button'); b2.className='ghost'; b2.dataset.act='del'; b2.dataset.idx=String(idx); b2.textContent='Del';
+          tdAct.appendChild(b1); tdAct.appendChild(b2); tr.appendChild(tdAct);
+          tbody.appendChild(tr);
+        });
+      }
+
+      function openModalByIndex(idx){
+        const rec = getData()[idx]; if(!rec) return;
+        const modal=$('#modal'); const title=$('#modalTitle'); const body=$('#modalBody');
+        title.textContent = rec.company?.name || 'Detalhes da resposta';
+        body.innerHTML='';
+        function row(label,value){ const tr=document.createElement('tr'); const td1=document.createElement('td'); td1.textContent=label; td1.style.width='40%'; const td2=document.createElement('td'); td2.textContent=(value==null||value==='')?'—':String(value); tr.append(td1,td2); return tr; }
+        const c=rec.company;
+        const card1=document.createElement('div'); card1.className='card';
+        let h=document.createElement('div'); h.className='section-title'; const h3=document.createElement('h3'); h3.textContent='Empresa'; h.appendChild(h3); card1.appendChild(h);
+        const t1=document.createElement('table'); const tb1=document.createElement('tbody');
+        tb1.append(row('Data', dateBR(rec.createdAt)));
+        tb1.append(row('Razão social', c.name)); tb1.append(row('CNPJ', c.cnpj)); tb1.append(row('Setor', c.sector)); tb1.append(row('Porte', c.size)); tb1.append(row('Cidade/UF', c.location)); tb1.append(row('Contato', c.contact)); tb1.append(row('E-mail', c.email)); tb1.append(row('Telefone', c.phone));
+        t1.appendChild(tb1); card1.appendChild(t1); body.appendChild(card1);
+
+        const card2=document.createElement('div'); card2.className='card';
+        h=document.createElement('div'); h.className='section-title'; const hs=document.createElement('h3'); hs.textContent='Scores'; h.appendChild(hs); card2.appendChild(h);
+        const chips=document.createElement('div'); chips.style.display='flex'; chips.style.flexWrap='wrap'; chips.style.gap='8px';
+        const dimMap=getDimensionMap(); Object.entries(dimMap).forEach(([key,title])=>{ const span=document.createElement('span'); span.className='pill'; const val=rec.scores?.dimensions?.[key]; span.textContent=`${title}: ${val!=null?Math.round(val*100)+'%':'—'}`; chips.appendChild(span); });
+        const spanT=document.createElement('span'); spanT.className='pill'; spanT.textContent=`Total: ${rec.scores?.total!=null?Math.round(rec.scores.total*100)+'%':'—'}`; chips.appendChild(spanT);
+        card2.appendChild(chips); body.appendChild(card2);
+
+        schema.sections.forEach(sec=>{
+          const card=document.createElement('div'); card.className='card';
+          const st=document.createElement('div'); st.className='section-title'; const hh=document.createElement('h3'); hh.textContent=sec.title; st.appendChild(hh); card.appendChild(st);
+          const t=document.createElement('table'); const tb=document.createElement('tbody');
+          sec.items.forEach(item=>{ const id=`q_${sec.key}_${item.id || slug(item.label)}`; const v=rec.answers[id]; tb.appendChild(row(item.label, (v==null||v==='')?'—':`${v} (${SCALE_NAMES[(v||1)-1]||''})`)); });
+          t.appendChild(tb); card.appendChild(t); body.appendChild(card);
+        });
+        modal.hidden=false;
+      }
+      function closeModal(){ $('#modal').hidden=true; }
+
+      function monthKey(d){ const dt=new Date(d); return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,'0'); }
+
+      function refreshCounts(data){ $('#subCount').textContent = data.length + (data.length===1?' resposta':' respostas'); updateDashboard(data); renderTable(data); }
+
+      function updateCharts(data){
+        const dimKeys = getDimensionKeys(); const dimMap=getDimensionMap();
+        const byMonth={}; data.forEach(r=>{ const k=monthKey(r.createdAt); byMonth[k]=byMonth[k]||{}; dimKeys.forEach(dk=>{ (byMonth[k][dk]||(byMonth[k][dk]=[])); const v=r.scores?.dimensions?.[dk]; if(v!=null) byMonth[k][dk].push(v*100); }); });
+        const labels = Object.keys(byMonth).sort();
+        const avg = arr => arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+        const datasets = dimKeys.map((dk,i)=>({ label: dimMap[dk], data: labels.map(m=>Math.round(avg(byMonth[m][dk]||[]))) }));
+        if(CHARTS.trend) CHARTS.trend.destroy();
+        CHARTS.trend = new Chart($('#chartTrend'), { type:'line', data:{ labels, datasets }, options:{ responsive:true, interaction:{ mode:'index', intersect:false }, scales:{ y:{ min:0, max:100, ticks:{ callback:v=>v+'%' } } } } });
+
+        const bySector={}; data.forEach(d=>{ const k=d.company?.sector||'—'; const v=(d.scores?.total!=null)? d.scores.total*100 : null; if(v!=null){ (bySector[k]||(bySector[k]=[])).push(v); } });
+        const sLabels=Object.keys(bySector); const sVals=sLabels.map(k=>Math.round(avg(bySector[k])));
+        if(CHARTS.sector) CHARTS.sector.destroy();
+        CHARTS.sector = new Chart($('#chartSector'), { type:'bar', data:{ labels:sLabels, datasets:[{ label:'Score médio (Total)', data:sVals }] }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ min:0, max:100, ticks:{ callback:v=>v+'%' } } } } });
+
+        const bySize={}; data.forEach(d=>{ const k=d.company?.size||'—'; bySize[k]=(bySize[k]||0)+1; });
+        const zLabels=Object.keys(bySize); const zVals=zLabels.map(k=>bySize[k]);
+        if(CHARTS.size) CHARTS.size.destroy();
+        CHARTS.size = new Chart($('#chartSize'), { type:'doughnut', data:{ labels:zLabels, datasets:[{ data:zVals }] }, options:{ responsive:true } });
+      }
+
+      function updateQuality(data){
+        const n=data.length; const digits=s=>String(s||'').replace(/\D+/g,''); const reMail=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        let okMail=0, okCNPJ=0, okPhone=0, okLoc=0, okEmp=0, okConsent=0, complete=0; const issues={ email:0, cnpj:0, phone:0, loc:0, emp:0, consent:0 };
+        data.forEach(d=>{
+          const mail = reMail.test(d.company.email||''); if(mail) okMail++; else issues.email++;
+          const cnpj = digits(d.company.cnpj).length===14; if(cnpj) okCNPJ++; else issues.cnpj++;
+          const phoneLen=digits(d.company.phone).length; const phone=(phoneLen===10||phoneLen===11); if(phone) okPhone++; else issues.phone++;
+          const loc = !!(d.company.location && d.company.location.includes('/')); if(loc) okLoc++; else issues.loc++;
+          const emp = typeof d.company.employees==='number' && d.company.employees>=0; if(emp) okEmp++; else issues.emp++;
+          const cons=!!d.consent; if(cons) okConsent++; else issues.consent++;
+          if(mail && cnpj && phone && loc && emp && cons) complete++;
+        });
+        const pct=x=> n? Math.round(100*x/n) : 0;
+        $('#qReg').textContent=n; $('#qComplete').textContent=pct(complete)+'%'; $('#qConsent').textContent=pct(okConsent)+'%';
+        $('#qPctEmail').textContent=pct(okMail)+'%'; $('#qBarEmail').style.width=pct(okMail)+'%';
+        $('#qPctCNPJ').textContent=pct(okCNPJ)+'%'; $('#qBarCNPJ').style.width=pct(okCNPJ)+'%';
+        $('#qPctPhone').textContent=pct(okPhone)+'%'; $('#qBarPhone').style.width=pct(okPhone)+'%';
+        $('#qPctLoc').textContent=pct(okLoc)+'%'; $('#qBarLoc').style.width=pct(okLoc)+'%';
+        $('#qPctEmp').textContent=pct(okEmp)+'%'; $('#qBarEmp').style.width=pct(okEmp)+'%';
+        const entries=Object.entries(issues).filter(([k,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,5);
+        const wrap=$('#qIssues'); wrap.innerHTML = entries.length? ('<ul>'+entries.map(([k,v])=>`<li>${k.toUpperCase()}: ${v}</li>`).join('')+'</ul>') : 'Sem problemas.';
+      }
+
+      function updateDashboard(data){
+        // KPIs dinâmicos por dimensão
+        const area=$('#kpiArea'); area.innerHTML='';
+        const boxTotal=document.createElement('div'); boxTotal.className='box'; boxTotal.innerHTML = `<div class="hint">Respostas totais</div><div class="value" id="kpiCount">${data.length}</div>`; area.appendChild(boxTotal);
+        const dimKeys=getDimensionKeys(); const dimMap=getDimensionMap();
+        const valid=data.filter(d=>d.scores && d.scores.total!=null);
+        const avgDim = k => valid.length? (valid.reduce((a,b)=>a+(b.scores.dimensions[k]||0),0)/valid.length) : 0;
+        dimKeys.forEach(k=>{
+          const v = Math.round(avgDim(k)*100);
+          const box=document.createElement('div'); box.className='box';
+          box.innerHTML = `<div class="hint">${dimMap[k]}</div><div class="value">${v}%</div><div class="progress"><span style="width:${v}%"></span></div>`;
+          area.appendChild(box);
+        });
+        // Total médio (média simples das dimensões)
+        const tAvg = valid.length? Math.round(valid.reduce((a,b)=>a+(b.scores.total||0),0)/valid.length*100) : 0;
+        const boxT=document.createElement('div'); boxT.className='box'; boxT.innerHTML = `<div class="hint">Score Total Médio</div><div class="value">${tAvg}%</div><div class="progress"><span style="width:${tAvg}%"></span></div>`; area.appendChild(boxT);
+
+        // extra KPIs
+        const monthAgo=new Date(); monthAgo.setDate(monthAgo.getDate()-30);
+        const monthCount=data.filter(d=>new Date(d.createdAt)>=monthAgo).length;
+        const consentCount=data.filter(d=>d.consent).length; const consentPct=data.length? Math.round(100*consentCount/data.length):0;
+        const uniqKey=d=> (String(d.company.cnpj||'').trim().toLowerCase()) || (String(d.company.name||'').trim().toLowerCase());
+        const uniq=new Set(data.map(uniqKey).filter(Boolean));
+        const employeesArr=data.map(d=>d.company.employees).filter(v=>typeof v==='number'&&!isNaN(v)); const empAvg=employeesArr.length? Math.round(employeesArr.reduce((a,b)=>a+b,0)/employeesArr.length):0;
+        $('#kpiMonth').textContent=monthCount; $('#kpiConsent').textContent=consentPct+'%'; $('#kpiUnique').textContent=uniq.size; $('#kpiEmpAvg').textContent=empAvg;
+
+        // listas + gráficos + qualidade
+        updateYesNoList(data); updateCharts(data); updateQuality(data);
+      }
+
+      function updateYesNoList(data){
+        // Coleta de itens yes/no (se usuário editar schema manualmente)
+        const defs=[]; schema.sections.forEach(sec=>{ sec.items.forEach(item=>{ if(item.type==='yesno'){ const id=`q_${sec.key}_${item.id || slug(item.label)}`; defs.push({ id, label:item.label, section:sec.title }); } }); });
+        const stats=defs.map(def=>{ let base=0, yes=0; data.forEach(d=>{ const v=d.answers? d.answers[def.id] : undefined; if(v!==undefined && v!==null && v!==''){ base++; if(v==='Sim') yes++; } }); const pct=base? Math.round(100*yes/base):null; return { ...def, base, yes, pct }; }).filter(r=>r.pct!==null).sort((a,b)=> b.pct-a.pct || b.yes-a.yes).slice(0,6);
+        const div=$('#listYesNo'); div.innerHTML = stats.length? ('<ul>'+stats.map(r=>`<li>${r.label} — ${r.pct}% (${r.yes}/${r.base})</li>`).join('')+'</ul>') : 'Sem dados.';
+      }
+
+      function exportJSON(){ const rows=getData().map(r=>r); const blob=new Blob([JSON.stringify(rows,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='diagnostico_maturidade.json'; a.click(); URL.revokeObjectURL(url); }
+
+      function unionHeaders(rows){ return Array.from(new Set(rows.flatMap(r=>Object.keys(r)))).sort(); }
+      function flattenForExport(rec){
+        const flat = {
+          data: new Date(rec.createdAt),
+          empresa: rec.company?.name||'', cnpj: rec.company?.cnpj||'', setor: rec.company?.sector||'', porte: rec.company?.size||'', cidadeUF: rec.company?.location||'',
+          contato: rec.company?.contact||'', email: rec.company?.email||'', telefone: rec.company?.phone||'', colaboradores: rec.company?.employees??''
+        };
+        const dimMap=getDimensionMap(); Object.keys(dimMap).forEach(k=>{ flat['score_'+k] = rec.scores?.dimensions?.[k]!=null? Math.round(rec.scores.dimensions[k]*100) : null; });
+        flat['score_total'] = rec.scores?.total!=null? Math.round(rec.scores.total*100) : null;
+        for(const k in rec.answers){ flat[k]=rec.answers[k]; }
+        return flat;
+      }
+
+      function exportXLSX(){
+        const data = getData(); const wb=XLSX.utils.book_new();
+        const rows = data.map(flattenForExport);
+        // Ordena colunas: base -> scores -> respostas
+        const baseOrder=['data','empresa','cnpj','setor','porte','cidadeUF','contato','email','telefone','colaboradores'];
+        const dimKeys=getDimensionKeys(); const scoreOrder = dimKeys.map(k=>'score_'+k).concat(['score_total']);
+        const headers = Array.from(new Set([...baseOrder, ...scoreOrder, ...unionHeaders(rows)]));
+        const aoa = [ headers.map(h=>{
+          const dimMap=getDimensionMap();
+          if(h.startsWith('score_')){
+            const dk=h.replace('score_',''); if(dk==='total') return 'Score Total'; return (dimMap[dk]||dk)+' (Score)';
+          }
+          const labelBase={ data:'Data', empresa:'Empresa', cnpj:'CNPJ', setor:'Setor', porte:'Porte', cidadeUF:'Cidade/UF', contato:'Contato', email:'E-mail', telefone:'Telefone', colaboradores:'Colaboradores' };
+          return labelBase[h] || h;
+        })];
+        rows.forEach(r=>{ aoa.push(headers.map(h=> r[h]==null? '': r[h] )); });
+        const ws=XLSX.utils.aoa_to_sheet(aoa);
+        // formato de data
+        for(let i=1;i<aoa.length;i++){ const cell=XLSX.utils.encode_cell({ r:i, c:0 }); if(ws[cell]) ws[cell].z='dd/mm/yyyy hh:mm'; }
+        XLSX.utils.book_append_sheet(wb, ws, 'Respostas');
+        XLSX.writeFile(wb, 'diagnostico_maturidade.xlsx');
+      }
+
+      function exportCSV(){
+        const data=getData(); const rows=data.map(flattenForExport); const headers=unionHeaders(rows);
+        const esc=s=> '"'+String(s).replace(/"/g,'""')+'"';
+        const csv=[ headers.join(',') ].concat(rows.map(r=> headers.map(h=> r[h]==null? '' : esc(r[h])).join(',')) ).join('\n');
+        const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='diagnostico_maturidade.csv'; a.click(); URL.revokeObjectURL(url);
+      }
+
+      // ======= STORAGE LAYER =======
+      function getData(){ return USE_LOCAL? (DATA||[]) : (window.__REMOTE_DATA__||[]); }
+      async function addRecord(rec){ if(USE_LOCAL){ DATA.unshift(rec); saveData(DATA); } else { try { const id=await window.firebaseApi.saveRecord(rec); rec._id=id; } catch(e){ console.warn('Falha Firestore, salvando local', e); DATA.unshift(rec); saveData(DATA); } } }
+      function subscribeRemote(){ if(!window.firebaseApi) return; window.firebaseApi.subscribe(arr=>{ window.__REMOTE_DATA__=arr; refreshCounts(getData()); }); }
+
+      // ======= EVENTS =======
+      function bindEvents(){
+        $$('.tab').forEach(btn=> btn.addEventListener('click', ()=>{
+          $$('.tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+          const tab=btn.dataset.tab; ['new','submissions','questions','dashboard'].forEach(k=> $('#tab-'+k).hidden = (k!==tab));
+        }));
+        $('#btnClear').addEventListener('click', ()=>{ $('#form').reset(); renderForm(); });
+        $('#form').addEventListener('submit', async (ev)=>{ ev.preventDefault(); const rec=collectAnswers(); if(!rec) return; await addRecord(rec); refreshCounts(getData()); alert('Resposta salva com sucesso!'); $('#form').reset(); renderForm(); });
+        $('#filter').addEventListener('input', ()=> renderTable(getData()));
+        document.addEventListener('click', async (ev)=>{
+          const t=ev.target; if(!(t instanceof HTMLElement)) return;
+          if(t.dataset.act==='view'){ openModalByIndex(Number(t.dataset.idx)); }
+          if(t.dataset.act==='del'){
+            if(!confirm('Apagar este registro?')) return;
+            const idx=Number(t.dataset.idx); const arr=getData(); const rec=arr[idx];
+            if(USE_LOCAL){ arr.splice(idx,1); saveData(arr); } else { try { await window.firebaseApi.deleteRecord(rec._id); } catch(e){ console.warn('Falha apagar remoto', e); }
+            }
+            refreshCounts(getData());
+          }
+          if(t.id==='modalClose'){ closeModal(); }
+          if(t.id==='btnPrint'){ window.print(); }
+        }); 
+        $('#btnExportXLSX').addEventListener('click', exportXLSX);
+        $('#btnExportCSV').addEventListener('click', exportCSV);
+        $('#btnSchemaReset').addEventListener('click', ()=>{ schema = JSON.parse(JSON.stringify(defaultSchema)); saveSchema(schema); $('#schemaEditor').value=JSON.stringify(schema,null,2); renderForm(); renderSubsTableHead(); refreshCounts(getData()); });
+        $('#btnSchemaSave').addEventListener('click', ()=>{ try { const s=JSON.parse($('#schemaEditor').value); if(!s.sections) throw new Error('Schema inválido'); schema=s; saveSchema(schema); renderForm(); renderSubsTableHead(); refreshCounts(getData()); alert('Perguntas atualizadas.'); } catch(e){ alert('JSON inválido: '+(e.message||e)); } });
+      }
+
+      // ======= INIT =======
+      function init(){
+        $('#schemaEditor').value = JSON.stringify(schema,null,2);
+        renderForm(); renderSubsTableHead(); attachMasks(); bindEvents(); subscribeRemote(); refreshCounts(getData());
+      }
+
+      init();
+    })();
+  </script>
+</body>
 </html>
