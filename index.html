@@ -722,7 +722,6 @@
           if(t.id==='btnPrint'){ window.print(); }
         }); 
         $('#btnExportXLSX').addEventListener('click', exportXLSX);
-        $('#btnExportCSV').addEventListener('click', exportCSV);
         $('#btnSchemaReset').addEventListener('click', ()=>{ schema = JSON.parse(JSON.stringify(defaultSchema)); saveSchema(schema); $('#schemaEditor').value=JSON.stringify(schema,null,2); renderForm(); renderSubsTableHead(); refreshCounts(getData()); });
         $('#btnSchemaSave').addEventListener('click', ()=>{ try { const s=JSON.parse($('#schemaEditor').value); if(!s.sections) throw new Error('Schema inválido'); schema=s; saveSchema(schema); renderForm(); renderSubsTableHead(); refreshCounts(getData()); alert('Perguntas atualizadas.'); } catch(e){ alert('JSON inválido: '+(e.message||e)); } });
       }
@@ -738,4 +737,5 @@
   </script>
 </body>
 </html>
+
 
